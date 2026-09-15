@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generar Oficios</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="titleContainer">
+        <button class="home-button" onclick="location.href='../index.html'"> Inicio </button>
+        <h1>Generar Oficios</h1>
+        <p class="subtitle">A partir del Excel de Direcciones</p>
+    </div>
+
+    <div class="container">
+        <div style="text-align:center;">
+            <span class="info-badge">Arial 11 · Justificado · Carta · Listo para imprimir con encabezado</span>
+        </div>
+
+        <!-- Excel -->
+        <div id="dropZone" class="drop-zone">
+            <div class="drop-icon">📄</div>
+            <span class="drop-text">Arrastra el Excel aquí</span>
+            <span class="drop-subtext">Debe contener la hoja de direcciones</span>
+            <input type="file" id="fileInput" class="file-input-hidden" accept=".xlsx,.xls">
+        </div>
+
+        <div class="form-group">
+            <label for="sheetName">📑 Nombre de la hoja del Excel:</label>
+            <input type="text" id="sheetName" value="Direcciones">
+        </div>
+
+        <!-- Datos del firmante -->
+        <div class="section-title">✍️ Firmante</div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="firmanteNombre">Nombre:</label>
+                <input type="text" id="firmanteNombre" value="Wilmar Andrés Gómez">
+            </div>
+            <div class="form-group">
+                <label for="firmanteCargo">Cargo:</label>
+                <input type="text" id="firmanteCargo" value="Auxiliar de Tesorería">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>🖋️ Imagen de la firma (opcional):</label>
+            <div id="signatureDropZone" class="drop-zone signature-zone">
+                <div class="drop-icon">🖋️</div>
+                <span class="drop-text">Arrastra la firma aquí</span>
+                <span class="drop-subtext">PNG con fondo transparente recomendado</span>
+                <input type="file" id="signatureInput" class="file-input-hidden" accept="image/png,image/jpeg">
+            </div>
+            <div id="signaturePreview" class="signature-preview"></div>
+        </div>
+
+        <!-- Transcriptor -->
+        <div class="form-group">
+            <label for="elaboradoPor">📝 Transcriptor:</label>
+            <input type="text" id="elaboradoPor" placeholder="Ej: Marcela Gómez">
+        </div>
+
+        <!-- Tipo de descarga -->
+        <div class="output-selector">
+            <div class="selector-label">Tipo de descarga:</div>
+            <div class="selector-buttons">
+                <button type="button" class="selector-btn active" data-value="single">
+                    📄 PDF único
+                    <span class="btn-sub">Todos en un archivo</span>
+                </button>
+                <button type="button" class="selector-btn" data-value="zip">
+                    📦 ZIP
+                    <span class="btn-sub">Un PDF por oficio</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="button-container">
+            <button onclick="generarOficios()" class="generate-button">Generar Oficios</button>
+            <button onclick="limpiar()" class="cancel-button">Cancelar</button>
+        </div>
+
+        <div style="text-align:center;">
+            <div id="message"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.2/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="scripts.js"></script>
+</body>
+</html>

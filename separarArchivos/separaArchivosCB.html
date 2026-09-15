@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Separador Archivos para Envios</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="titleContainer">
+        <button class="home-button" onclick="location.href='../index.html'"> Inicio </button>
+        <h1>Separador de Archivos CB</h1>
+        <p class="subtitle">Para Envío de Tarjetas</p>
+    </div>
+
+    <div class="file-button-container">
+        <!-- Zona Drag & Drop -->
+        <div id="dropZoneCB" class="drop-zone">
+            <div class="drop-icon">📁</div>
+            <span class="drop-text">Arrastra el archivo CB aquí</span>
+            <span class="drop-subtext">o haz clic para seleccionarlo</span>
+            <input type="file" id="fileInput" class="file-input-hidden" accept=".txt">
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="button-container">
+            <button onclick="processFile()" class="action-button">Procesar</button>
+            <button onclick="clearTable()" class="action-button cancel-button">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Barra de acciones superiores (Exportar) -->
+    <div id="topActions" class="top-actions" style="display: none;">
+        <div class="results-info">
+            <span id="resultsCount">0 registros</span>
+        </div>
+        <div class="top-buttons">
+            <button id="exportButton" class="export-button">⬇️ Exportar a Excel</button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <div class="table-box">
+            <table id="dataTable" class="dataTable">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>CEDULA</th>
+                        <th>TARJETA</th>
+                        <th>EMPRESA</th>
+                        <th>CANT</th>
+                    </tr>
+                </thead>
+                <tbody id="dataBody">
+                    <!-- Aquí se insertarán las filas de datos -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <button class="scrollButton smallButton topRight" onclick="scrollToBottom()">⬇ Ir al Final</button>
+    <button class="scrollButton smallButton bottomRight" onclick="scrollToTop()">⬆ Subir</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.2/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="scripts.js"></script>
+
+    <script>
+        function scrollToBottom() { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }
+        function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    </script>
+</body>
+</html>

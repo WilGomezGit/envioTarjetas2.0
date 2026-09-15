@@ -1,0 +1,388 @@
+/* ==========================================
+   RESET Y BASE
+   ========================================== */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background-color: #f0f0f0;
+    background-image: url('../imagen/fondo.jpg');
+    background-repeat: repeat;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+}
+
+h1 {
+    margin: 0;
+    font-size: 1.5em;
+    color: #2c3e50;
+}
+
+/* ==========================================
+   ENCABEZADO / TÍTULO
+   ========================================== */
+.titleContainer {
+    background-color: #e0e8f0;
+    padding: 15px 20px;
+    border-radius: 8px;
+    text-align: center;
+    margin-bottom: 25px;
+    position: relative;
+    border: 1px solid #d0d8e0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.titleContainer .subtitle {
+    margin: 4px 0 0 0;
+    font-size: 0.85em;
+    color: #666;
+}
+
+.home-button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    padding: 8px 16px;
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.9em;
+    transition: background-color 0.25s ease;
+}
+
+.home-button:hover {
+    background-color: #45a049;
+    box-shadow: none;
+    transform: translateY(-50%);
+}
+
+/* ==========================================
+   CONTENEDOR DE CARGA
+   ========================================== */
+.file-button-container {
+    background-color: #ffffff;
+    padding: 25px;
+    border-radius: 12px;
+    text-align: center;
+    margin: 0 auto 25px auto;
+    border: 1px solid #e0e0e0;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.drop-zone {
+    border: 2px dashed #8e44ad;
+    border-radius: 12px;
+    padding: 35px 20px;
+    text-align: center;
+    background-color: #faf7fd;
+    cursor: pointer;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+    margin-bottom: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 140px;
+}
+
+.drop-zone:hover {
+    background-color: #f3eaf9;
+    border-color: #7d3c98;
+}
+
+.drop-zone.dragover {
+    background-color: #f4e6ff;
+    border-color: #2ecc71;
+}
+
+.drop-zone .drop-icon {
+    font-size: 2.5em;
+    margin-bottom: 8px;
+    line-height: 1;
+}
+
+.drop-zone .drop-text {
+    color: #2c3e50;
+    font-size: 1.05em;
+    font-weight: bold;
+    pointer-events: none;
+    margin-bottom: 4px;
+}
+
+.drop-zone .drop-subtext {
+    color: #7f8c8d;
+    font-size: 0.85em;
+    pointer-events: none;
+    word-break: break-all;
+    padding: 0 10px;
+}
+
+.file-input-hidden {
+    display: none;
+}
+
+/* ==========================================
+   SELECTOR DE TIPO DE DESCARGA (2 BOTONES)
+   ========================================== */
+.output-selector {
+    margin: 12px 0 0 0;
+    text-align: left;
+}
+
+.selector-label {
+    font-size: 0.88em;
+    color: #555;
+    margin-bottom: 8px;
+    font-weight: 600;
+    padding-left: 4px;
+}
+
+.selector-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.selector-btn {
+    background-color: #f5f5f5;
+    color: #555;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 12px 10px;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 600;
+    transition: all 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-family: inherit;
+    line-height: 1.2;
+    text-align: center;
+}
+
+.selector-btn:hover {
+    background-color: #f0eaf5;
+    border-color: #c9a8dc;
+}
+
+.selector-btn.active {
+    background-color: #8e44ad;
+    color: white;
+    border-color: #7d3c98;
+    box-shadow: 0 4px 10px rgba(142, 68, 173, 0.25);
+}
+
+.selector-btn.active:hover {
+    background-color: #7d3c98;
+}
+
+.selector-btn .btn-sub {
+    font-size: 0.72em;
+    font-weight: 400;
+    opacity: 0.85;
+}
+
+.selector-btn.active .btn-sub {
+    opacity: 0.95;
+}
+
+/* ==========================================
+   BOTONES
+   ========================================== */
+button {
+    background-color: #3498db;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 0.95em;
+    transition: background-color 0.25s ease;
+    font-family: inherit;
+}
+
+button:hover {
+    background-color: #2980b9;
+}
+
+button:active {
+    background-color: #21618c;
+}
+
+.action-button {
+    background-color: #3498db;
+}
+
+.report-button {
+    background-color: #8e44ad;
+    font-weight: bold;
+}
+
+.report-button:hover {
+    background-color: #7d3c98;
+}
+
+.cancel-button {
+    background-color: #e74c3c;
+}
+
+.cancel-button:hover {
+    background-color: #c0392b;
+}
+
+.button-container {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+}
+
+/* ==========================================
+   MENSAJE DE ESTADO
+   ========================================== */
+#message {
+    display: inline-block;
+    text-align: center;
+    font-size: 0.95em;
+    font-weight: bold;
+    margin-top: 15px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+    max-width: 100%;
+}
+
+#message.success {
+    color: #1e7e34;
+    background-color: #d4edda;
+    border: 2px solid #28a745;
+}
+
+#message.error {
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 2px solid #dc3545;
+}
+
+#message.loading {
+    color: #856404;
+    background-color: #fff3cd;
+    border: 2px solid #ffc107;
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+@media (max-width: 768px) {
+    body {
+        padding: 12px;
+    }
+
+    h1 {
+        font-size: 1.2em;
+    }
+
+    .titleContainer {
+        padding: 12px;
+        margin-bottom: 18px;
+    }
+
+    .titleContainer .subtitle {
+        font-size: 0.78em;
+    }
+
+    .home-button {
+        position: static;
+        transform: none;
+        margin-bottom: 10px;
+        display: inline-block;
+    }
+
+    .home-button:hover {
+        transform: none;
+    }
+
+    .file-button-container {
+        padding: 18px;
+        border-radius: 10px;
+    }
+
+    .drop-zone {
+        padding: 25px 15px;
+        min-height: 120px;
+    }
+
+    .drop-zone .drop-icon {
+        font-size: 2em;
+    }
+
+    .drop-zone .drop-text {
+        font-size: 0.95em;
+    }
+
+    .drop-zone .drop-subtext {
+        font-size: 0.78em;
+    }
+
+    .button-container {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .button-container button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    h1 {
+        font-size: 1.05em;
+    }
+
+    .file-button-container {
+        padding: 14px;
+    }
+
+    .drop-zone {
+        padding: 20px 12px;
+        min-height: 100px;
+    }
+
+    .drop-zone .drop-icon {
+        font-size: 1.7em;
+    }
+
+    .drop-zone .drop-text {
+        font-size: 0.88em;
+    }
+
+    .drop-zone .drop-subtext {
+        font-size: 0.72em;
+    }
+
+    .selector-buttons {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .selector-btn {
+        padding: 10px 8px;
+        font-size: 0.9em;
+    }
+
+    #message {
+        font-size: 0.88em;
+        padding: 8px 14px;
+    }
+}

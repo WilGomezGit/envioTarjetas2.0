@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte Planilla de Tarjetas</title>
+    <link rel="stylesheet" href="reporteStyles.css">
+</head>
+<body>
+    <div class="titleContainer">
+        <button class="home-button" onclick="location.href='../index.html'"> Inicio </button>
+        <h1>Reporte Planilla de Tarjetas</h1>
+        <p class="subtitle">Genera las planillas en PDF por empresa</p>
+    </div>
+
+    <div class="file-button-container">
+        <div id="dropZoneExcel" class="drop-zone">
+            <div class="drop-icon">📊</div>
+            <span class="drop-text">Arrastra el Excel aquí</span>
+            <span class="drop-subtext">Debe contener las hojas 'Original' y 'SinDuplicados'</span>
+            <input type="file" id="fileInputExcel" class="file-input-hidden" accept=".xlsx, .xls">
+        </div>
+
+        <!-- Selector de tipo de descarga -->
+        <div class="output-selector">
+            <div class="selector-label">Tipo de descarga:</div>
+            <div class="selector-buttons">
+                <button type="button"
+                        class="selector-btn active"
+                        data-value="single">
+                    📄 PDF único
+                    <span class="btn-sub">Todos en un archivo</span>
+                </button>
+                <button type="button"
+                        class="selector-btn"
+                        data-value="zip">
+                    📦 ZIP
+                    <span class="btn-sub">Archivos individuales</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="button-container">
+            <button onclick="generarReportesPDF()" class="action-button report-button">Generar Planillas</button>
+            <button onclick="limpiarReporte()" class="action-button cancel-button">Cancelar</button>
+        </div>
+
+        <div id="message"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.2/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="reporteScripts.js"></script>
+</body>
+</html>
