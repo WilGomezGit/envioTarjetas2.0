@@ -68,25 +68,63 @@ function similarity(a, b) {
     return 1 - levenshtein(a, b) / Math.max(a.length, b.length);
 }
 
+// ==========================================
+// MATCH INTELIGENTE DE EMPRESAS
+// ==========================================
 function findMatchingWorkers(empresaNombre, mapaTrabajadores) {
     const keys = Object.keys(mapaTrabajadores);
     if (!keys.length) return [];
+
     const variants = [
         normalizeKey(empresaNombre, true),
         normalizeKey(empresaNombre, false)
     ].filter((v, i, a) => v && a.indexOf(v) === i);
-    for (const v of variants) if (mapaTrabajadores[v]) return mapaTrabajadores[v];
-    const MIN_LEN = 10;
+
+    // --- 1. MATCH EXACTO ---
+    for (const v of variants) {
+        if (mapaTrabajadores[v]) return mapaTrabajadores[v];
+    }
+
+    // --- 2. MATCH POR PREFIJO DIRECTO ---
+    const MIN_LEN_PREFIX = 15;
     for (const v of variants) {
         for (const key of keys) {
-            if (key.length < MIN_LEN) continue;
-            if (v.startsWith(key) || key.startsWith(v)) return mapaTrabajadores[key];
+            if (key.length < MIN_LEN_PREFIX || v.length < MIN_LEN_PREFIX) continue;
+            const shorter = v.length < key.length ? v : key;
+            const longer  = v.length < key.length ? key : v;
+            if (longer.startsWith(shorter)) {
+                return mapaTrabajadores[key];
+            }
         }
     }
+
+    // --- 3. MATCH POR PREFIJO CON SIMILITUD ---
+    const PREFIX_LEN = 30;
+    const MIN_SCORE_PREFIX = 0.90;
+    let bestPrefixKey = null, bestPrefixScore = 0;
+
+    for (const v of variants) {
+        const vPrefix = v.substring(0, PREFIX_LEN);
+        if (vPrefix.length < 15) continue;
+        for (const key of keys) {
+            const keyPrefix = key.substring(0, PREFIX_LEN);
+            if (keyPrefix.length < 15) continue;
+            const score = similarity(vPrefix, keyPrefix);
+            if (score > bestPrefixScore) {
+                bestPrefixScore = score;
+                bestPrefixKey = key;
+            }
+        }
+    }
+    if (bestPrefixKey && bestPrefixScore >= MIN_SCORE_PREFIX) {
+        return mapaTrabajadores[bestPrefixKey];
+    }
+
+    // --- 4. MATCH POR SIMILITUD GLOBAL ---
     let bestKey = null, bestScore = 0;
-    const MIN_SCORE = 0.80;
+    const MIN_SCORE = 0.85;
     for (const key of keys) {
-        if (key.length < MIN_LEN) continue;
+        if (key.length < 10) continue;
         for (const v of variants) {
             const lenDiff = Math.abs(v.length - key.length) / Math.max(v.length, key.length);
             if (lenDiff > 0.35) continue;
@@ -95,6 +133,7 @@ function findMatchingWorkers(empresaNombre, mapaTrabajadores) {
         }
     }
     if (bestKey && bestScore >= MIN_SCORE) return mapaTrabajadores[bestKey];
+
     return [];
 }
 
@@ -161,11 +200,11 @@ function updateDropZoneUI(fileName) {
 function resetDropZoneUI() {
     const dz = document.getElementById('dropZoneExcel');
     dz.querySelector('.drop-text').textContent = 'Arrastra el Excel aquí';
-    dz.querySelector('.drop-subtext').textContent = "Debe contener las hojas 'Original' y 'SinDuplicados'";
+    dz.querySelector('.drop-subtext').textContent = "Debe contener 2 hojas: la primera con trabajadores y la segunda con empresas";
 }
 
 // ==========================================
-// SELECTOR DE TIPO DE DESCARGA (2 BOTONES TOGGLE)
+// SELECTOR DE TIPO DE DESCARGA
 // ==========================================
 function setupOutputSelector() {
     const btns = document.querySelectorAll('.selector-btn');
@@ -179,7 +218,7 @@ function setupOutputSelector() {
 
 function getSelectedOutputType() {
     const activeBtn = document.querySelector('.selector-btn.active');
-    return activeBtn ? activeBtn.dataset.value : 'single';  // ← fallback 'single'
+    return activeBtn ? activeBtn.dataset.value : 'single';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -199,15 +238,35 @@ function limpiarReporte() {
 }
 
 // ==========================================
-// DIBUJAR UNA PLANILLA EN UN PDF (Helper)
+// DETECTAR COLUMNAS DINÁMICAMENTE
+// ==========================================
+function detectarColumnas(headersRow, mapaBuscado) {
+    const indices = {};
+    headersRow.forEach((h, i) => {
+        const key = normalizeKey(h, true);
+        for (const [campo, alias] of Object.entries(mapaBuscado)) {
+            if (indices[campo] !== undefined) continue;
+            for (const a of alias) {
+                const aliasNorm = normalizeKey(a, true);
+                if (key === aliasNorm || (aliasNorm.length > 2 && key.includes(aliasNorm))) {
+                    indices[campo] = i;
+                    break;
+                }
+            }
+        }
+    });
+    return indices;
+}
+
+// ==========================================
+// DIBUJAR UNA PLANILLA EN UN PDF
 // ==========================================
 function dibujarPlanilla(pdfDoc, helvetica, helveticaBold, empresaData, trabajadores, empresaIdx) {
     const { nit, nombre, cant } = empresaData;
-    const W = 792, H = 612, rowH = 12, bottomReserve = 60;   // ← CARTA horizontal
+    const W = 792, H = 612, rowH = 12, bottomReserve = 60;
     const black = PDFLib.rgb(0, 0, 0);
     const gray = PDFLib.rgb(0.5, 0.5, 0.5);
 
-    // Columnas reajustadas para ancho Carta (792 pt)
     const cols = [
         { x: 30,  w: 25,  label: 'No.' },
         { x: 55,  w: 110, label: 'CEDULA TRABAJADOR' },
@@ -255,7 +314,6 @@ function dibujarPlanilla(pdfDoc, helvetica, helveticaBold, empresaData, trabajad
         return topY - headerH - 25;
     };
 
-    // ----- PÁGINA 1 -----
     let page = pdfDoc.addPage([W, H]);
     let currentPage = 1;
     drawSmallHeader(page, currentPage, totalPages);
@@ -275,13 +333,12 @@ function dibujarPlanilla(pdfDoc, helvetica, helveticaBold, empresaData, trabajad
         const t = trabajadores[i];
         drawCenteredInCell(page, `${i + 1}`, colNo.x, colNo.w, y, 8, helvetica, black);
         page.drawText(t.cedula, { x: colCedula.x + 3, y, size: 8, font: helvetica, color: black });
-        page.drawText(t.nombre.substring(0, 45), { x: colNombre.x + 3, y, size: 8, font: helvetica, color: black });
+        page.drawText((t.nombre || '').substring(0, 45), { x: colNombre.x + 3, y, size: 8, font: helvetica, color: black });
         drawCenteredInCell(page, t.tarjeta, colNoTarjeta.x, colNoTarjeta.w, y, 8, helvetica, black);
         y -= rowH;
     }
     let workerIdx = cap1;
 
-    // ----- PÁGINAS SIGUIENTES -----
     while (workerIdx < trabajadores.length) {
         currentPage++;
         page = pdfDoc.addPage([W, H]);
@@ -292,7 +349,7 @@ function dibujarPlanilla(pdfDoc, helvetica, helveticaBold, empresaData, trabajad
             const t = trabajadores[workerIdx];
             drawCenteredInCell(page, `${workerIdx + 1}`, colNo.x, colNo.w, y, 8, helvetica, black);
             page.drawText(t.cedula, { x: colCedula.x + 3, y, size: 8, font: helvetica, color: black });
-            page.drawText(t.nombre.substring(0, 45), { x: colNombre.x + 3, y, size: 8, font: helvetica, color: black });
+            page.drawText((t.nombre || '').substring(0, 45), { x: colNombre.x + 3, y, size: 8, font: helvetica, color: black });
             drawCenteredInCell(page, t.tarjeta, colNoTarjeta.x, colNoTarjeta.w, y, 8, helvetica, black);
             y -= rowH;
             workerIdx++;
@@ -306,12 +363,30 @@ function dibujarPlanilla(pdfDoc, helvetica, helveticaBold, empresaData, trabajad
 }
 
 // ==========================================
+// LEER EXCEL
+// ==========================================
+function readExcelWorkbook(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                resolve(workbook);
+            } catch (error) { reject(error); }
+        };
+        reader.onerror = (e) => reject(e);
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+// ==========================================
 // GENERAR REPORTES (ZIP o PDF ÚNICO)
 // ==========================================
 async function generarReportesPDF() {
     const excelFile = document.getElementById('fileInputExcel').files[0];
     if (!excelFile) {
-        alert("Por favor, carga el archivo Excel que contiene las hojas 'Original' y 'SinDuplicados'.");
+        alert("Por favor, carga el archivo Excel.");
         return;
     }
 
@@ -323,51 +398,124 @@ async function generarReportesPDF() {
 
     try {
         const workbook = await readExcelWorkbook(excelFile);
-        const sheetOriginal = workbook.Sheets['Original'];
-        const sheetSinDuplicados = workbook.Sheets['SinDuplicados'];
+        const nombresHojas = workbook.SheetNames;
 
-        if (!sheetOriginal || !sheetSinDuplicados) {
-            alert("El archivo Excel debe contener las hojas 'Original' y 'SinDuplicados'.");
-            messageEl.textContent = '';
-            messageEl.className = '';
+        console.log('📚 Hojas encontradas en el Excel:', nombresHojas);
+
+        if (nombresHojas.length < 2) {
+            const mensaje = `❌ El archivo Excel debe contener al menos 2 hojas.<br><br>` +
+                            `<strong>Hojas encontradas:</strong> ${nombresHojas.length}<br>` +
+                            nombresHojas.map((n, i) => `${i + 1}. ${n}`).join('<br>') +
+                            `<br><br><em>La <b>primera hoja</b> debe contener los trabajadores y la <b>segunda hoja</b> las empresas.</em>`;
+            messageEl.innerHTML = mensaje;
+            messageEl.className = 'error';
+            alert('❌ El archivo Excel debe tener al menos 2 hojas.');
             return;
         }
 
+        const nombreHojaOriginal = nombresHojas[0];
+        const nombreHojaSinDup = nombresHojas[1];
+
+        console.log(`📋 Usando como "Original" (trabajadores): ${nombreHojaOriginal}`);
+        console.log(`📋 Usando como "SinDuplicados" (empresas): ${nombreHojaSinDup}`);
+
+        const sheetOriginal = workbook.Sheets[nombreHojaOriginal];
+        const sheetSinDuplicados = workbook.Sheets[nombreHojaSinDup];
+
         const dataOriginal = XLSX.utils.sheet_to_json(sheetOriginal, { header: 1 });
         const dataSinDuplicados = XLSX.utils.sheet_to_json(sheetSinDuplicados, { header: 1 });
-        dataOriginal.shift();
-        dataSinDuplicados.shift();
 
+        // ============ DETECCIÓN DINÁMICA DE COLUMNAS ============
+        const headersOriginal = dataOriginal[0] || [];
+        const colsOriginal = detectarColumnas(headersOriginal, {
+            cedula:   ['DOCUMENTO', 'CEDULA', 'CEDULA TRABAJADOR'],
+            nombre:   ['NOMBRE TRABAJADOR', 'APELLIDOS Y NOMBRES', 'NOMBRE', 'APELLIDOS'],
+            tarjeta:  ['TARJETA', 'NO TARJETA', 'NUMERO TARJETA'],
+            empresa:  ['EMPRESA', 'RAZON SOCIAL', 'RAZÓN SOCIAL'],
+            cant:     ['CANT', 'CANTIDAD']
+        });
+
+        const headersSinDup = dataSinDuplicados[0] || [];
+        const colsSinDup = detectarColumnas(headersSinDup, {
+            nit:    ['NIT'],
+            nombre: ['EMPRESA', 'RAZON SOCIAL', 'RAZÓN SOCIAL'],
+            cant:   ['CANT', 'CANTIDAD', 'TOTAL']
+        });
+
+        console.log('📋 Columnas detectadas en hoja 1 (trabajadores):', colsOriginal);
+        console.log('📋 Columnas detectadas en hoja 2 (empresas):', colsSinDup);
+
+        // ============ VALIDACIONES OBLIGATORIAS ============
+        const erroresColumnas = [];
+
+        if (colsOriginal.cedula === undefined) {
+            erroresColumnas.push("• Falta la columna <b>Documento</b> en la primera hoja");
+        }
+        if (colsOriginal.nombre === undefined) {
+            erroresColumnas.push("• Falta la columna <b>Nombre Trabajador</b> en la primera hoja");
+        }
+        if (colsOriginal.tarjeta === undefined) {
+            erroresColumnas.push("• Falta la columna <b>TARJETA</b> en la primera hoja");
+        }
+        if (colsOriginal.empresa === undefined) {
+            erroresColumnas.push("• Falta la columna <b>EMPRESA</b> en la primera hoja");
+        }
+        if (colsSinDup.nit === undefined) {
+            erroresColumnas.push("• Falta la columna <b>NIT</b> en la segunda hoja");
+        }
+        if (colsSinDup.nombre === undefined) {
+            erroresColumnas.push("• Falta la columna <b>EMPRESA</b> en la segunda hoja");
+        }
+        if (colsSinDup.cant === undefined) {
+            erroresColumnas.push("• Falta la columna <b>CANT</b> en la segunda hoja");
+        }
+
+        if (erroresColumnas.length > 0) {
+            const mensaje = `❌ El archivo Excel no tiene el formato correcto.<br><br>` +
+                            `<strong>Columnas faltantes:</strong><br>` +
+                            erroresColumnas.join('<br>') +
+                            `<br><br><em>Recuerda: la primera hoja debe tener trabajadores y la segunda debe tener empresas.</em>`;
+            messageEl.innerHTML = mensaje;
+            messageEl.className = 'error';
+            alert('❌ El archivo Excel no tiene el formato correcto. Revisa el mensaje en pantalla.');
+            return;
+        }
+
+        // ============ EMPRESAS (SEGUNDA HOJA) ============
         const empresasInfo = [];
-        dataSinDuplicados.forEach(row => {
-            if (row.length >= 4) {
-                empresasInfo.push({
-                    nit: sanitizeForPDF(row[1]),
-                    nombre: sanitizeForPDF(row[2]),
-                    cant: parseInt(row[3]) || 0
-                });
+        dataSinDuplicados.slice(1).forEach(row => {
+            if (!row || row.length < 3) return;
+            const nit = sanitizeForPDF(row[colsSinDup.nit]);
+            const nombre = sanitizeForPDF(row[colsSinDup.nombre]);
+            const cant = parseInt(row[colsSinDup.cant]) || 0;
+            if (nombre) {
+                empresasInfo.push({ nit, nombre, cant });
             }
         });
 
+        // ============ TRABAJADORES (PRIMERA HOJA) ============
         const trabajadoresPorEmpresa = {};
-        dataOriginal.forEach(row => {
-            if (row.length >= 5) {
-                const rawEmpresa = sanitizeForPDF(row[4]);
-                const keys = [
-                    normalizeKey(rawEmpresa, true),
-                    normalizeKey(rawEmpresa, false)
-                ].filter((v, i, a) => v && a.indexOf(v) === i);
-                keys.forEach(key => {
-                    if (!trabajadoresPorEmpresa[key]) trabajadoresPorEmpresa[key] = [];
-                    trabajadoresPorEmpresa[key].push({
-                        cedula: sanitizeForPDF(row[1]),
-                        nombre: reordenarNombre(sanitizeForPDF(row[2])),
-                        tarjeta: sanitizeForPDF(row[3])
-                    });
+        dataOriginal.slice(1).forEach(row => {
+            if (!row || row.length < 3) return;
+            const rawEmpresa = sanitizeForPDF(row[colsOriginal.empresa]);
+            if (!rawEmpresa) return;
+
+            const keys = [
+                normalizeKey(rawEmpresa, true),
+                normalizeKey(rawEmpresa, false)
+            ].filter((v, i, a) => v && a.indexOf(v) === i);
+
+            keys.forEach(key => {
+                if (!trabajadoresPorEmpresa[key]) trabajadoresPorEmpresa[key] = [];
+                trabajadoresPorEmpresa[key].push({
+                    cedula: sanitizeForPDF(row[colsOriginal.cedula]),
+                    nombre: reordenarNombre(sanitizeForPDF(row[colsOriginal.nombre])),
+                    tarjeta: sanitizeForPDF(row[colsOriginal.tarjeta])
                 });
-            }
+            });
         });
 
+        // ============ GENERACIÓN DE PDFs ============
         const totalEmpresas = empresasInfo.length;
         const empresasSinMatch = [];
         const zip = new JSZip();
@@ -451,22 +599,4 @@ async function generarReportesPDF() {
         messageEl.className = 'error';
         alert("Ocurrió un error al generar los reportes. Revisa la consola para más detalles.");
     }
-}
-
-// ==========================================
-// LEER EXCEL
-// ==========================================
-function readExcelWorkbook(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                resolve(workbook);
-            } catch (error) { reject(error); }
-        };
-        reader.onerror = (e) => reject(e);
-        reader.readAsArrayBuffer(file);
-    });
 }
