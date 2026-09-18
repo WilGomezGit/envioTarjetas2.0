@@ -46,6 +46,15 @@ function sanitizeFilename(str) {
         .substring(0, 80);
 }
 
+function normalizeHeader(str) {
+    if (!str) return '';
+    return String(str)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^A-Za-z0-9]/g, '')
+        .toUpperCase();
+}
+
 function wrapText(text, font, size, maxWidth) {
     const words = String(text).split(/\s+/);
     const lines = [];
@@ -85,6 +94,26 @@ function readFileAsArrayBuffer(file) {
         reader.onerror = (e) => reject(e);
         reader.readAsArrayBuffer(file);
     });
+}
+
+// ==========================================
+// DETECTAR COLUMNAS DINÁMICAMENTE POR ENCABEZADO
+// ==========================================
+function detectarColumnas(headersRow, mapaBuscado) {
+    const indices = {};
+    headersRow.forEach((h, i) => {
+        const key = normalizeHeader(h);
+        for (const [campo, alias] of Object.entries(mapaBuscado)) {
+            if (indices[campo] !== undefined) continue;
+            for (const a of alias) {
+                if (key === normalizeHeader(a)) {
+                    indices[campo] = i;
+                    break;
+                }
+            }
+        }
+    });
+    return indices;
 }
 
 // ==========================================
@@ -174,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// DIBUJAR LÍNEA JUSTIFICADA (como Word)
+// DIBUJAR LÍNEA JUSTIFICADA
 // ==========================================
 function drawJustifiedLine(page, line, font, size, x, y, maxWidth, color) {
     const words = line.split(/\s+/).filter(w => w);
@@ -182,11 +211,9 @@ function drawJustifiedLine(page, line, font, size, x, y, maxWidth, color) {
         page.drawText(line, { x, y, size, font, color });
         return;
     }
-
     const wordsWidth = words.reduce((sum, w) => sum + font.widthOfTextAtSize(w, size), 0);
     const totalSpaces = words.length - 1;
     const spaceWidth = (maxWidth - wordsWidth) / totalSpaces;
-
     let curX = x;
     for (let i = 0; i < words.length; i++) {
         page.drawText(words[i], { x: curX, y, size, font, color });
@@ -196,11 +223,11 @@ function drawJustifiedLine(page, line, font, size, x, y, maxWidth, color) {
 }
 
 // ==========================================
-// DIBUJAR UN OFICIO EN UN PDF  ← CAMBIADO A CARTA
+// DIBUJAR UN OFICIO EN UN PDF
 // ==========================================
 async function dibujarOficio(pdfDoc, font, fontBold, emp, fecha, firmante, cargo, elaboradoPor, firmaImage, cfg) {
-    const W = 612;      // ← CARTA (antes 595.28 = A4)
-    const H = 792;      // ← CARTA (antes 841.89 = A4)
+    const W = 612;
+    const H = 792;
     const ML = cfg.marginLeft;
     const MR = cfg.marginRight;
     const MT = cfg.marginTop;
@@ -242,16 +269,16 @@ async function dibujarOficio(pdfDoc, font, fontBold, emp, fecha, firmante, cargo
         y -= n;
     };
 
-    // --- Encabezado ---
+    // --- Encabezado (Popayán es la ciudad de emisión del oficio, no del destinatario) ---
     drawParagraph(`Popayán, ${fecha}`);
     gap(8);
 
     // --- Destinatario ---
     drawParagraph('Señores');
     drawParagraph(emp.empresa, { bold: true });
-    drawParagraph(emp.direccion);
-    drawParagraph(`Teléfono: ${emp.telefono}`);
-    drawParagraph(emp.ciudad);
+    if (emp.direccion) drawParagraph(emp.direccion);
+    if (emp.telefono)  drawParagraph(`Teléfono: ${emp.telefono}`);
+    if (emp.ciudad)    drawParagraph(emp.ciudad);
     gap(8);
 
     // --- Asunto ---
@@ -363,33 +390,62 @@ async function generarOficios() {
             return;
         }
 
-        const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-        data.shift();
+        // ============ LEER COMO MATRIZ ============
+        const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
 
-        const empresas = [];
-        data.forEach(row => {
-            if (row && row.length >= 7 && row[2]) {
-                empresas.push({
-                    no: row[0],
-                    nit: String(row[1] || '').trim(),
-                    empresa: String(row[2] || '').trim(),
-                    cant: parseInt(row[3]) || 0,
-                    direccion: String(row[4] || '').trim(),
-                    ciudad: String(row[5] || '').trim(),
-                    telefono: String(row[6] || '').trim()
-                });
-            }
+        // ============ DETECTAR COLUMNAS DINÁMICAMENTE ============
+        const headers = data[0] || [];
+        console.log('📋 Encabezados de la hoja "' + sheetName + '":', headers);
+
+        const cols = detectarColumnas(headers, {
+            nit:       ['NIT'],
+            empresa:   ['EMPRESA', 'RAZON SOCIAL', 'RAZÓN SOCIAL'],
+            cant:      ['CANT', 'CANTIDAD'],
+            direccion: ['DIRECCION', 'DIRECCIÓN', 'DIRECCION LOCAL', 'DIRECCIÓN LOCAL'],
+            ciudad:    ['CIUDAD', 'CIUDAD LOCAL', 'MUNICIPIO'],
+            telefono:  ['TELEFONO', 'TELÉFONO', 'CELULAR', 'CELULAR LOCAL', 'TELEFONO LOCAL', 'TELÉFONO LOCAL']
         });
 
-        console.log(`Total empresas: ${empresas.length}`);
+        console.log('📋 Columnas detectadas:', cols);
 
-        if (empresas.length === 0) {
-            alert('No se encontraron filas válidas.');
+        if (cols.empresa === undefined) {
+            alert('No se encontró la columna EMPRESA en la hoja "' + sheetName + '".');
             messageEl.textContent = '';
             messageEl.className = '';
             return;
         }
 
+        // ============ CONSTRUIR EMPRESAS ============
+        const empresas = [];
+        for (let i = 1; i < data.length; i++) {
+            const row = data[i];
+            if (!row) continue;
+
+            const empresa = String(row[cols.empresa] ?? '').trim();
+            if (!empresa) continue;
+
+            empresas.push({
+                no:        cols.nit       !== undefined ? String(row[cols.nit] ?? '').trim()       : '',
+                nit:       cols.nit       !== undefined ? String(row[cols.nit] ?? '').trim()       : '',
+                empresa:   empresa,
+                cant:      cols.cant      !== undefined ? (parseInt(row[cols.cant]) || 0)          : 0,
+                direccion: cols.direccion !== undefined ? String(row[cols.direccion] ?? '').trim() : '',
+                ciudad:    cols.ciudad    !== undefined ? String(row[cols.ciudad] ?? '').trim()    : '',
+                telefono:  cols.telefono  !== undefined ? String(row[cols.telefono] ?? '').trim()  : ''
+            });
+        }
+
+        console.log(`✅ Total empresas encontradas: ${empresas.length}`);
+        console.log('📋 Ejemplo (3 primeros):', empresas.slice(0, 3));
+
+        if (empresas.length === 0) {
+            alert('No se encontraron filas válidas en el Excel.');
+            messageEl.textContent = '';
+            messageEl.className = '';
+            return;
+        }
+
+        // ============ FIRMA ============
         let firmaImage = null;
         if (signatureFile) {
             const bytes = new Uint8Array(await readFileAsArrayBuffer(signatureFile));
@@ -435,7 +491,7 @@ async function generarOficios() {
             messageEl.textContent = `✅ Se generó 1 PDF con ${empresas.length} oficios.`;
         } else {
             messageEl.textContent = '⏳ Comprimiendo ZIP...';
-            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            const zipBlob = await zip.generateAsBlob();
             downloadBlob(zipBlob, 'Oficios.zip');
             messageEl.textContent = `✅ Se generaron ${empresas.length} oficios en ZIP.`;
         }
