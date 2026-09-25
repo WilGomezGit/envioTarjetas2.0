@@ -35,14 +35,14 @@ h1 {
 }
 
 /* ==========================================
-   BOTONES DE OPCIÓN
+   BOTONES DE OPCIï¿½N
    ========================================== */
 .options {
     margin-top: 40px;
     display: flex;
     justify-content: center;
-    align-items: center;
-    flex-wrap: wrap;
+    align-items: stretch;
+    flex-wrap: nowrap;
     gap: 22px;
 }
 
@@ -50,7 +50,7 @@ h1 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 22px 40px;
+    padding: 22px 20px;
     background-color: #3498db;
     color: white;
     text-decoration: none;
@@ -58,7 +58,8 @@ h1 {
     font-weight: 600;
     border-radius: 10px;
     transition: background-color 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
-    min-width: 240px;
+    flex: 1 1 0;
+    min-width: 0;
     box-shadow: 0 4px 10px rgba(52, 152, 219, 0.25);
     text-align: center;
 }
@@ -95,7 +96,7 @@ h1 {
 }
 
 /* ==========================================
-   PIE DE PÁGINA
+   PIE DE Pï¿½GINA
    ========================================== */
 footer {
     background-color: #f1f1f1;
@@ -145,16 +146,13 @@ footer p {
     }
 
     .options {
-        flex-direction: column;
-        gap: 15px;
+        gap: 10px;
         margin-top: 25px;
     }
 
     .button {
-        width: 100%;
-        min-width: auto;
-        padding: 18px 24px;
-        font-size: 17px;
+        padding: 16px 10px;
+        font-size: 14px;
     }
 }
 
@@ -168,9 +166,13 @@ footer p {
         font-size: 1.25em;
     }
 
+    .options {
+        gap: 6px;
+    }
+
     .button {
-        font-size: 16px;
-        padding: 16px 20px;
+        font-size: 11px;
+        padding: 12px 6px;
     }
 
     footer {
