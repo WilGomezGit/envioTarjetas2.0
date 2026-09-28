@@ -37,15 +37,6 @@ function sanitizeForFilename(str) {
         .substring(0, 80);
 }
 
-function reordenarNombre(nombreCompleto) {
-    if (!nombreCompleto) return '';
-    const palabras = String(nombreCompleto).trim().split(/\s+/).filter(Boolean);
-    if (palabras.length <= 2) return palabras.join(' ');
-    const apellidos = palabras.slice(-2);
-    const nombres = palabras.slice(0, -2);
-    return [...apellidos, ...nombres].join(' ');
-}
-
 function levenshtein(a, b) {
     if (a === b) return 0;
     if (!a.length) return b.length;
@@ -509,7 +500,7 @@ async function generarReportesPDF() {
                 if (!trabajadoresPorEmpresa[key]) trabajadoresPorEmpresa[key] = [];
                 trabajadoresPorEmpresa[key].push({
                     cedula: sanitizeForPDF(row[colsOriginal.cedula]),
-                    nombre: reordenarNombre(sanitizeForPDF(row[colsOriginal.nombre])),
+                    nombre: sanitizeForPDF(row[colsOriginal.nombre]),
                     tarjeta: sanitizeForPDF(row[colsOriginal.tarjeta])
                 });
             });
