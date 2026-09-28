@@ -37,124 +37,6 @@ function sanitizeForFilename(str) {
         .substring(0, 80);
 }
 
-// ==========================================
-// NOMBRES COMPUESTOS FRECUENTES (para desambiguar el caso de 3 palabras)
-// ==========================================
-// Cuando el nombre completo trae exactamente 3 palabras en formato
-// "Nombres Apellidos", no hay forma cierta de saber si es 1 nombre + 2
-// apellidos (ej: JUAN PEREZ GOMEZ) o 2 nombres + 1 apellido (ej: JHON JAIRO
-// VALLEJO) — ambos casos son comunes en Colombia y se ven igual como texto.
-// Por defecto se asume el primer caso (1 nombre + 2 apellidos). Esta lista
-// cubre los nombres compuestos más frecuentes para tratarlos como el segundo
-// caso en su lugar. No es exhaustiva: si aparece un caso nuevo sin resolver,
-// agrega el nombre compuesto aquí (en mayúsculas, sin tildes).
-const NOMBRES_COMPUESTOS_FRECUENTES = new Set([
-    // JUAN
-    'JUAN CARLOS', 'JUAN DAVID', 'JUAN DIEGO', 'JUAN PABLO', 'JUAN SEBASTIAN',
-    'JUAN MANUEL', 'JUAN FELIPE', 'JUAN ESTEBAN', 'JUAN CAMILO', 'JUAN ANDRES',
-    'JUAN GUILLERMO', 'JUAN GABRIEL', 'JUAN ALBERTO', 'JUAN FERNANDO', 'JUAN RICARDO',
-    // JOSE
-    'JOSE LUIS', 'JOSE MANUEL', 'JOSE ANTONIO', 'JOSE DAVID', 'JOSE MIGUEL',
-    'JOSE FERNANDO', 'JOSE ALEJANDRO', 'JOSE GREGORIO', 'JOSE JOAQUIN',
-    'JOSE VICENTE', 'JOSE IGNACIO',
-    // LUIS
-    'LUIS FERNANDO', 'LUIS ALBERTO', 'LUIS CARLOS', 'LUIS EDUARDO', 'LUIS ANGEL',
-    'LUIS MIGUEL', 'LUIS ALFONSO', 'LUIS ANTONIO', 'LUIS ENRIQUE', 'LUIS FELIPE',
-    'LUIS GUILLERMO', 'LUIS HERNANDO', 'LUIS HUMBERTO', 'LUIS ORLANDO',
-    // CARLOS
-    'CARLOS ANDRES', 'CARLOS ALBERTO', 'CARLOS ARTURO', 'CARLOS MARIO',
-    'CARLOS EDUARDO', 'CARLOS ENRIQUE', 'CARLOS FERNANDO', 'CARLOS HUMBERTO',
-    'CARLOS JULIO', 'CARLOS MAURICIO', 'CARLOS ALFONSO',
-    // JHON
-    'JHON JAIRO', 'JHON ALEXANDER', 'JHON FREDY', 'JHON FREDDY', 'JHON EDISON',
-    'JHON EDWIN', 'JHON FABER', 'JHON FABIO', 'JHON ANDERSON', 'JHON CESAR',
-    'JHON HENRY', 'JHON JADER',
-    // JORGE
-    'JORGE LUIS', 'JORGE ELIECER', 'JORGE ANDRES', 'JORGE ENRIQUE',
-    'JORGE EDUARDO', 'JORGE IVAN', 'JORGE HUMBERTO', 'JORGE ARMANDO',
-    // MIGUEL / DIEGO / JULIAN / ANDRES
-    'MIGUEL ANGEL', 'MIGUEL ANTONIO', 'MIGUEL ALBERTO', 'MIGUEL EDUARDO',
-    'DIEGO ALEJANDRO', 'DIEGO FERNANDO', 'DIEGO ARMANDO', 'DIEGO ANDRES',
-    'JULIAN ANDRES', 'JULIAN DAVID', 'JULIAN CAMILO', 'JULIAN ALBERTO',
-    'ANDRES FELIPE', 'ANDRES CAMILO', 'ANDRES MAURICIO', 'ANDRES FERNANDO', 'ANDRES DAVID',
-    // CRISTIAN / DANIEL / OSCAR
-    'CRISTIAN CAMILO', 'CRISTIAN DAVID', 'CRISTIAN FELIPE', 'CRISTIAN ANDRES',
-    'DANIEL FELIPE', 'DANIEL ALEJANDRO', 'DANIEL SANTIAGO', 'DANIEL EDUARDO',
-    'OSCAR DAVID', 'OSCAR ANDRES', 'OSCAR EDUARDO', 'OSCAR FERNANDO',
-    'OSCAR HUMBERTO', 'OSCAR IVAN', 'OSCAR JAVIER',
-    // OTROS MASCULINOS
-    'HECTOR FABIO', 'HECTOR JAVIER', 'HECTOR JULIO', 'HECTOR MANUEL',
-    'VICTOR HUGO', 'VICTOR MANUEL', 'VICTOR ALFONSO',
-    'RUBEN DARIO', 'GERMAN DARIO', 'GUSTAVO ADOLFO',
-    'WILSON ANDRES', 'WILSON DAVID', 'WILSON FABIAN',
-    'NELSON DAVID', 'NELSON FABIAN', 'NELSON JAVIER',
-    'FABIAN ANDRES', 'FABIAN CAMILO', 'FABIAN DAVID', 'SANTIAGO ANDRES',
-    'WILLIAM ALEXANDER', 'WILLIAM ANDRES', 'WILLIAM FERNANDO',
-    'EDWIN ALEXANDER', 'EDWIN FERNANDO', 'EDWIN JAVIER',
-    'JAVIER ALEXANDER', 'JAVIER EDUARDO',
-    'FRANCISCO JAVIER', 'FRANCISCO ANTONIO',
-    'PEDRO PABLO', 'PEDRO NEL', 'PEDRO ANTONIO',
-    'ALVARO ENRIQUE', 'ALVARO JOSE',
-    'MARCO ANTONIO', 'MARCO AURELIO', 'MARCO FIDEL',
-    'CESAR AUGUSTO', 'CESAR ANDRES',
-    'JAIME ANDRES', 'JAIME ALBERTO', 'JAIME ENRIQUE',
-    'MARIO ALBERTO', 'MARIO FERNANDO',
-    'RICARDO ANDRES', 'RICARDO JAVIER',
-    'SERGIO ANDRES', 'SERGIO DAVID', 'SERGIO FABIAN',
-    'FREDY ALEXANDER', 'FREDY ANDRES',
-    'YEISON ANDRES', 'YEISON FABIAN',
-    'BRAYAN ANDRES', 'BRAYAN STIVEN', 'BRAYAN FELIPE',
-    'KEVIN ANDRES', 'KEVIN STIVEN', 'KEVIN DAVID',
-    'DARWIN ANDRES', 'DARVIN STEVAN', 'DARVIN STIVEN',
-    'JEFFERSON ANDRES', 'JEFFERSON DAVID',
-    'ANDERSON DAVID', 'ANDERSON FABIAN',
-    // MARIA
-    'MARIA JOSE', 'MARIA FERNANDA', 'MARIA CAMILA', 'MARIA ALEJANDRA',
-    'MARIA PAULA', 'MARIA ANGELICA', 'MARIA ISABEL', 'MARIA CRISTINA',
-    'MARIA TERESA', 'MARIA EUGENIA', 'MARIA ELENA', 'MARIA VICTORIA',
-    'MARIA CLAUDIA', 'MARIA CONSUELO', 'MARIA MERCEDES', 'MARIA NELLY',
-    'MARIA STELLA', 'MARIA ESPERANZA', 'MARIA LUCIA', 'MARIA CAROLINA',
-    'MARIA GABRIELA', 'MARIA DANIELA', 'MARIA VALENTINA', 'MARIA JULIANA',
-    // ANA / LUZ
-    'ANA MARIA', 'ANA LUCIA', 'ANA MILENA', 'ANA CRISTINA', 'ANA PATRICIA',
-    'ANA SOFIA', 'ANA BEATRIZ', 'ANA ISABEL',
-    'LUZ MARINA', 'LUZ DARY', 'LUZ ADRIANA', 'LUZ ANGELA', 'LUZ ELENA',
-    'LUZ MARIA', 'LUZ MERY', 'LUZ MYRIAM', 'LUZ STELLA', 'LUZ AMPARO', 'LUZ NELLY',
-    // OTROS FEMENINOS
-    'SANDRA MILENA', 'SANDRA PATRICIA', 'SANDRA LILIANA', 'SANDRA VIVIANA',
-    'CLAUDIA PATRICIA', 'CLAUDIA MARCELA', 'CLAUDIA LILIANA',
-    'DIANA CAROLINA', 'DIANA MARCELA', 'DIANA PATRICIA', 'DIANA MILENA',
-    'PAULA ANDREA', 'PAULA CATALINA', 'PAULA CAMILA',
-    'LAURA DANIELA', 'LAURA CAMILA', 'LAURA VALENTINA', 'LAURA SOFIA',
-    'ANGIE PAOLA', 'ANGIE DANIELA', 'ANGIE VANESSA',
-    'LEIDY JOHANA', 'LEIDY TATIANA', 'LEIDY YOHANA', 'LEIDY VIVIANA', 'LEIDY CAROLINA',
-    'KAREN DAYANA', 'KAREN LORENA', 'KAREN JULIETH',
-    'LINA MARIA', 'LINA MARCELA', 'LINA PAOLA',
-    'MARTHA CECILIA', 'MARTHA LUCIA', 'MARTHA ISABEL', 'MARTHA PATRICIA',
-    'GLORIA AMPARO', 'GLORIA ESPERANZA', 'GLORIA INES', 'GLORIA PATRICIA',
-    'ROSA ELENA', 'ROSA MARIA', 'ROSA ELVIA',
-    'BLANCA CECILIA', 'BLANCA NIEVES', 'BLANCA LILIA', 'BLANCA LUZ',
-    'NUBIA ESPERANZA', 'NUBIA CONSTANZA', 'DORA LUZ', 'DORA ALICIA',
-]);
-
-function reordenarNombre(nombreCompleto) {
-    if (!nombreCompleto) return '';
-    const palabras = String(nombreCompleto).trim().split(/\s+/).filter(Boolean);
-    if (palabras.length <= 2) return palabras.join(' ');
-
-    let nombres, apellidos;
-    if (palabras.length === 3 && NOMBRES_COMPUESTOS_FRECUENTES.has(`${palabras[0]} ${palabras[1]}`.toUpperCase())) {
-        // Nombre compuesto conocido + 1 apellido (ej: JHON JAIRO VALLEJO)
-        nombres = palabras.slice(0, 2);
-        apellidos = palabras.slice(2);
-    } else {
-        // Caso por defecto: 1 nombre + 2 apellidos (ej: JUAN PEREZ GOMEZ)
-        apellidos = palabras.slice(-2);
-        nombres = palabras.slice(0, -2);
-    }
-    return [...apellidos, ...nombres].join(' ');
-}
-
 function levenshtein(a, b) {
     if (a === b) return 0;
     if (!a.length) return b.length;
@@ -618,7 +500,7 @@ async function generarReportesPDF() {
                 if (!trabajadoresPorEmpresa[key]) trabajadoresPorEmpresa[key] = [];
                 trabajadoresPorEmpresa[key].push({
                     cedula: sanitizeForPDF(row[colsOriginal.cedula]),
-                    nombre: reordenarNombre(sanitizeForPDF(row[colsOriginal.nombre])),
+                    nombre: sanitizeForPDF(row[colsOriginal.nombre]),
                     tarjeta: sanitizeForPDF(row[colsOriginal.tarjeta])
                 });
             });
