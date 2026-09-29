@@ -1,0 +1,437 @@
+/* Estilos específicos – Validar Archivo Plano para Pago
+   (autocontenidos: funcionan aunque no cargue ../css/global.css) */
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 30px 16px;
+    background-color: #f4f4f4;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+.container {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    padding: 70px 20px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin: 0 0 6px;
+    font-size: 22px;
+}
+
+h2 {
+    color: #333;
+    font-size: 18px;
+    margin: 10px 0;
+}
+
+.subtitle {
+    margin: 0 0 20px;
+    color: #666;
+    font-size: 13px;
+    text-align: center;
+}
+
+/* ===== Carga de archivo ===== */
+.file-container {
+    width: 50%;
+    min-width: 260px;
+    background: #f8f9fa;
+    border: 2px dashed #3498db;
+    border-radius: 12px;
+    padding: 25px;
+    text-align: center;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.file-container:hover {
+    box-shadow: 0 0 15px rgba(52, 152, 219, 0.4);
+}
+
+.file-container.dragover {
+    border-color: #007bff;
+    background-color: #e7f1ff;
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.6);
+    transform: scale(1.01);
+}
+
+.file-label {
+    display: inline-block;
+    background: linear-gradient(135deg, #007bff, #00c6ff);
+    color: #fff;
+    padding: 12px 25px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.file-label:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.6);
+}
+
+.file-label input {
+    display: none;
+}
+
+.drop-hint {
+    margin: 10px 0 0;
+    font-size: 12px;
+    color: #888;
+}
+
+.file-name {
+    margin-top: 10px;
+    font-size: 14px;
+    font-style: italic;
+    color: #555;
+}
+
+/* ===== Botones ===== */
+.buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 14px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    color: #fff;
+    width: 160px;
+    transition: background-color 0.3s;
+}
+
+button:disabled {
+    background-color: #ccc !important;
+    cursor: not-allowed;
+}
+
+#processButton {
+    background-color: #28a745;
+}
+
+#processButton:hover:not(:disabled) {
+    background-color: #218838;
+}
+
+#clearButton {
+    background-color: #dc3545;
+}
+
+#clearButton:hover:not(:disabled) {
+    background-color: #c82333;
+}
+
+.btn-home {
+    background-color: #4CAF50;
+    width: auto;
+    font-size: 15px;
+    position: absolute;
+    left: 20px;
+    top: 20px;
+}
+
+.btn-home:hover {
+    background-color: #45a049;
+}
+
+.btn-small {
+    width: auto;
+    padding: 7px 14px;
+    font-size: 13px;
+    background-color: #3498db;
+}
+
+.btn-small:hover {
+    background-color: #2980b9;
+}
+
+/* ===== Mensaje general ===== */
+#validationMessage {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#validationMessage:empty {
+    display: none;
+}
+
+#validationMessage,
+.success-message,
+.error-message {
+    font-weight: bold;
+    font-size: 16px;
+    padding: 10px;
+    text-align: center;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.success-message {
+    color: #1e7e34;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+}
+
+.error-message {
+    color: #b52b27;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+}
+
+/* ===== Resumen ===== */
+.summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.card {
+    background: #f8f9fa;
+    border: 1px solid #dde2e6;
+    border-left: 4px solid #3498db;
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.card-label {
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+}
+
+.card-value {
+    font-size: 15px;
+    font-weight: bold;
+    color: #222;
+    word-break: break-word;
+}
+
+.card-error { border-left-color: #dc3545; }
+.card-warn { border-left-color: #f0ad4e; }
+.card-ok { border-left-color: #28a745; }
+
+.results-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.results-toolbar[hidden] {
+    display: none;
+}
+
+.note {
+    font-size: 12px;
+    color: #666;
+}
+
+/* ===== Resultados ===== */
+.output {
+    width: 100%;
+    text-align: left;
+    font-size: 14px;
+}
+
+.output:empty {
+    display: none;
+}
+
+.no-issues {
+    padding: 15px;
+    background: #d4edda;
+    border-radius: 5px;
+    color: #1e7e34;
+    font-weight: bold;
+}
+
+.table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+table.issues {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+table.issues th {
+    position: sticky;
+    top: 0;
+    background: #343a40;
+    color: #fff;
+    padding: 8px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+table.issues td {
+    padding: 7px 8px;
+    max-width: 460px;
+    border-bottom: 1px solid #e3e3e3;
+    vertical-align: top;
+}
+
+table.issues tr.sev-error td:first-child { border-left: 4px solid #dc3545; }
+table.issues tr.sev-warning td:first-child { border-left: 4px solid #f0ad4e; }
+table.issues tr.sev-error { background: #fff8f8; }
+table.issues tr.sev-warning { background: #fffdf5; }
+
+.badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+}
+
+.badge-error { background: #dc3545; }
+.badge-warning { background: #e0962a; }
+
+.mono,
+.snippet {
+    font-family: Consolas, "Courier New", monospace;
+    white-space: pre;
+}
+
+.fix {
+    margin-top: 5px;
+    color: #155724;
+}
+
+.snippet {
+    margin-top: 6px;
+    padding: 4px 6px;
+    background: #272822;
+    color: #f8f8f2;
+    border-radius: 4px;
+    display: block;
+    max-width: 440px;
+    overflow-x: auto;
+}
+
+.snippet mark {
+    background: #ff4d4f;
+    color: #fff;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+.snippet .sp {
+    color: #75715e;
+}
+
+a[data-line] {
+    font-weight: bold;
+    color: #007bff;
+}
+
+/* ===== Inspector de línea ===== */
+.line-inspector {
+    width: 100%;
+    margin-top: 15px;
+}
+
+.line-inspector:empty {
+    display: none;
+}
+
+.inspector-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.inspector-head h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+/* ===== Estructura esperada ===== */
+.layout-doc {
+    width: 100%;
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+.layout-doc summary {
+    cursor: pointer;
+    font-weight: bold;
+    color: #3498db;
+}
+
+.layout-doc h4 {
+    margin: 15px 0 6px;
+}
+
+/* ===== Pie de página ===== */
+footer {
+    background-color: #f1f1f1;
+    padding: 10px;
+    text-align: center;
+    width: 100%;
+    font-size: 13px;
+    font-style: italic;
+    margin-top: auto;
+}
+
+footer::before {
+    content: "";
+    display: block;
+    height: 2px;
+    width: 100%;
+    background: linear-gradient(to right, transparent, #3498db, #00b8d9, transparent);
+    margin-bottom: 6px;
+}
+
+footer p {
+    margin: 0;
+    color: #333;
+}
+
+@media (max-width: 700px) {
+    .file-container { width: 100%; }
+    .container { padding-top: 70px; }
+}

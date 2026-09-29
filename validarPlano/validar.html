@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validador de Archivo de Texto</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="local.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Botón para ir a la página principal -->
+        <button id="homeButton" class="btn btn-home" onclick="goToHome()">&laquo; Página Inicio</button>
+
+        <h1>Validador de Archivos de Pagos Bancolombia</h1>
+        <p class="subtitle">Formato PAB — registros de 264 posiciones (encabezado tipo 1 + detalles tipo 6)</p>
+
+        <!-- Sección de carga del archivo -->
+        <div class="file-container">
+            <label class="file-label">
+                📂 Elegir archivo
+                <input type="file" id="fileInput" accept=".txt">
+            </label>
+            <p class="drop-hint">o arrastra el archivo .txt aquí</p>
+
+            <div id="fileName" class="file-name">
+                No hay archivos seleccionados
+            </div>
+        </div>
+
+        <!-- Botones con espacio adecuado -->
+        <div class="buttons">
+            <button id="processButton" class="btn-success" disabled>Aceptar</button>
+            <button id="clearButton" class="btn-danger">Cancelar</button>
+        </div>
+
+        <h2>Resultados de la Validación</h2>
+
+        <!-- Mensaje de validación (éxito o error) -->
+        <div id="validationMessage"></div>
+
+        <!-- Resumen del archivo -->
+        <div id="summary" class="summary"></div>
+
+        <!-- Filtro y descarga -->
+        <div id="resultsToolbar" class="results-toolbar" hidden>
+            <label>Mostrar:
+                <select id="filterSelect">
+                    <option value="all">Todo</option>
+                    <option value="error">Solo errores</option>
+                    <option value="warning">Solo advertencias</option>
+                </select>
+            </label>
+            <span class="note">Haga clic en el número de línea para verla campo por campo.</span>
+            <button id="downloadButton" type="button" class="btn-small">⬇ Descargar reporte (CSV)</button>
+        </div>
+
+        <!-- Detalle de errores -->
+        <div id="output" class="output"></div>
+
+        <!-- Inspector de línea -->
+        <div id="lineInspector" class="line-inspector"></div>
+
+        <!-- Estructura esperada -->
+        <details class="layout-doc">
+            <summary>Ver estructura esperada del archivo</summary>
+            <p class="note">
+                Cada línea debe tener exactamente 264 posiciones y terminar con salto de línea Windows (CRLF).
+                Solo se permiten caracteres ASCII: sin tildes, sin Ñ, sin tabulaciones ni espacios especiales.
+                Las posiciones se cuentan en bytes, que es como lee el banco.
+            </p>
+            <div id="layoutDoc"></div>
+        </details>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <p>Copyright © | Popayán 2025</p>
+            <p>Tesorería Comfacauca</p>
+            <p class="signature">Desarrollo: Wilmar Andrés Gómez</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
