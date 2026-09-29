@@ -776,8 +776,6 @@ function initUI() {
         e.preventDefault();
         renderInspector(+a.dataset.line);
     });
-
-    renderLayoutDoc();
 }
 
 function isTxt(file) {
@@ -914,16 +912,6 @@ function renderInspector(lineNo) {
         <button type="button" class="btn-small" onclick="document.getElementById('lineInspector').innerHTML=''">Cerrar</button></div>
         <p class="note">Los espacios se muestran como "·". Si la línea está corrida, se indica dónde se leyó realmente cada campo.</p>${body}`;
     box.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function renderLayoutDoc() {
-    const el = document.getElementById('layoutDoc');
-    if (!el) return;
-    el.innerHTML = Object.entries(LAYOUT).map(([t, rec]) =>
-        `<h4>Registro tipo ${t}: ${rec.name} (${LINE_LENGTH} posiciones)</h4>
-        <table class="issues layout"><thead><tr><th>Campo</th><th>Desde</th><th>Hasta</th><th>Long.</th><th>Contenido permitido</th></tr></thead><tbody>` +
-        rec.fields.map(f => `<tr><td>${escapeHtml(f.name)}</td><td>${f.start}</td><td>${f.end}</td><td>${f.length}</td><td>${escapeHtml(f.kind === 'const' ? `"${f.value}"` : f.kind === 'oneOf' ? f.values.join(' / ') : f.charsDesc || f.expectedDesc || '')}</td></tr>`).join('') +
-        '</tbody></table>').join('');
 }
 
 function downloadReport() {

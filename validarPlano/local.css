@@ -389,23 +389,6 @@ a[data-line] {
     font-size: 16px;
 }
 
-/* ===== Estructura esperada ===== */
-.layout-doc {
-    width: 100%;
-    margin-top: 20px;
-    font-size: 14px;
-}
-
-.layout-doc summary {
-    cursor: pointer;
-    font-weight: bold;
-    color: #3498db;
-}
-
-.layout-doc h4 {
-    margin: 15px 0 6px;
-}
-
 /* ===== Pie de página ===== */
 footer {
     background-color: #f1f1f1;
