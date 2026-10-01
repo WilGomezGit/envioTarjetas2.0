@@ -264,7 +264,7 @@ function drawJustifiedLine(page, line, font, size, x, y, maxWidth, color) {
 // ==========================================
 // DIBUJAR UN OFICIO EN UN PDF
 // ==========================================
-async function dibujarOficio(pdfDoc, font, fontBold, emp, fecha, firmante, cargo, elaboradoPor, firmaImage, cfg, membrete) {
+async function dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, firmante, cargo, elaboradoPor, firmaImage, cfg, membrete) {
     const W = 612;
     const H = 792;
     const ML = cfg.marginLeft;
@@ -289,7 +289,7 @@ async function dibujarOficio(pdfDoc, font, fontBold, emp, fecha, firmante, cargo
         if (membrete.sello) {
             const selloH = 60;
             const selloW = selloH * (membrete.sello.width / membrete.sello.height);
-            p.drawImage(membrete.sello, { x: W - MR - selloW, y: Math.max(0, footerH - 10), width: selloW, height: selloH });
+            p.drawImage(membrete.sello, { x: W - selloW - 12, y: footerH + 14, width: selloW, height: selloH });
         }
     };
 
@@ -310,7 +310,7 @@ async function dibujarOficio(pdfDoc, font, fontBold, emp, fecha, firmante, cargo
     };
 
     const drawParagraph = (text, opts = {}) => {
-        const f = opts.bold ? fontBold : font;
+        const f = opts.font || (opts.bold ? fontBold : font);
         const s = opts.size || fontSize;
         const lh = s * cfg.lineSpacing;
         const lines = wrapText(text, f, s, maxWidth);
@@ -367,8 +367,8 @@ async function dibujarOficio(pdfDoc, font, fontBold, emp, fecha, firmante, cargo
     drawParagraph('Favor hacer extensiva esta información a sus empleados.');
     gap(10);
 
-    drawParagraph('Atentamente,');
-    gap(15);
+    drawParagraph('Cordialmente,');
+    gap(6);
 
     // --- Firma imagen ---
     if (firmaImage) {
@@ -379,8 +379,8 @@ async function dibujarOficio(pdfDoc, font, fontBold, emp, fecha, firmante, cargo
             } else {
                 embeddedImg = await pdfDoc.embedJpg(firmaImage.bytes);
             }
-            const maxH = 55;
-            const maxW = 180;
+            const maxH = 42;
+            const maxW = 160;
             const dims = embeddedImg.scale(1);
             let scale = 1;
             if (dims.height > maxH) scale = maxH / dims.height;
@@ -388,19 +388,19 @@ async function dibujarOficio(pdfDoc, font, fontBold, emp, fecha, firmante, cargo
             const imgW = dims.width * scale;
             const imgH = dims.height * scale;
 
-            newPageIfNeeded(imgH + 10);
+            newPageIfNeeded(imgH + 8);
             page.drawImage(embeddedImg, {
                 x: ML,
                 y: y - imgH,
                 width: imgW,
                 height: imgH
             });
-            y -= (imgH + 6);
+            y -= (imgH + 4);
         } catch (e) {
             console.warn('No se pudo insertar la firma:', e);
         }
     } else {
-        gap(30);
+        gap(22);
     }
 
     drawParagraph(firmante, { bold: true });
@@ -414,7 +414,7 @@ async function dibujarOficio(pdfDoc, font, fontBold, emp, fecha, firmante, cargo
     gap(10);
 
     if (elaboradoPor) {
-        drawParagraph(`Transcriptor: ${elaboradoPor}`);
+        drawParagraph(`Transcriptor: ${elaboradoPor}`, { font: fontItalic, size: 9 });
     }
 
     return page;
@@ -531,12 +531,13 @@ async function generarOficios() {
 
         const fecha = getFechaEspanol();
         const zip = new JSZip();
-        let masterPdf = null, masterFont = null, masterFontBold = null, masterMembrete = null;
+        let masterPdf = null, masterFont = null, masterFontBold = null, masterFontItalic = null, masterMembrete = null;
 
         if (outputType === 'single') {
             masterPdf = await PDFLib.PDFDocument.create();
             masterFont = await masterPdf.embedFont(PDFLib.StandardFonts.Helvetica);
             masterFontBold = await masterPdf.embedFont(PDFLib.StandardFonts.HelveticaBold);
+            masterFontItalic = await masterPdf.embedFont(PDFLib.StandardFonts.HelveticaOblique);
             masterMembrete = await embedMembrete(masterPdf, membreteBytes);
         }
 
@@ -546,13 +547,14 @@ async function generarOficios() {
 
             try {
                 if (outputType === 'single') {
-                    await dibujarOficio(masterPdf, masterFont, masterFontBold, emp, fecha, firmante, cargo, elaboradoPor, firmaImage, cfg, masterMembrete);
+                    await dibujarOficio(masterPdf, masterFont, masterFontBold, masterFontItalic, emp, fecha, firmante, cargo, elaboradoPor, firmaImage, cfg, masterMembrete);
                 } else {
                     const pdfDoc = await PDFLib.PDFDocument.create();
                     const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
                     const fontBold = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+                    const fontItalic = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaOblique);
                     const membrete = await embedMembrete(pdfDoc, membreteBytes);
-                    await dibujarOficio(pdfDoc, font, fontBold, emp, fecha, firmante, cargo, elaboradoPor, firmaImage, cfg, membrete);
+                    await dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, firmante, cargo, elaboradoPor, firmaImage, cfg, membrete);
                     const pdfBytes = await pdfDoc.save();
                     const nombreLimpio = sanitizeFilename(emp.empresa);
                     zip.file(`${i + 1}. ${nombreLimpio}.pdf`, pdfBytes);
