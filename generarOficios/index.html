@@ -62,10 +62,25 @@
             <input type="text" id="elaboradoPor" placeholder="Ej: Marcela Gómez">
         </div>
 
+        <!-- Formato del oficio -->
+        <div class="output-selector">
+            <div class="selector-label">Formato del oficio:</div>
+            <div class="selector-buttons" id="formatoSelector">
+                <button type="button" class="selector-btn active" data-value="plantilla">
+                    🖼️ Con plantilla
+                    <span class="btn-sub">Membrete Comfacauca</span>
+                </button>
+                <button type="button" class="selector-btn" data-value="blanco">
+                    📄 Sin plantilla
+                    <span class="btn-sub">Hoja en blanco</span>
+                </button>
+            </div>
+        </div>
+
         <!-- Tipo de descarga -->
         <div class="output-selector">
             <div class="selector-label">Tipo de descarga:</div>
-            <div class="selector-buttons">
+            <div class="selector-buttons" id="outputTypeSelector">
                 <button type="button" class="selector-btn active" data-value="single">
                     📄 PDF único
                     <span class="btn-sub">Todos en un archivo</span>
