@@ -97,6 +97,35 @@ function readFileAsArrayBuffer(file) {
 }
 
 // ==========================================
+// MEMBRETE (plantilla Comfacauca)
+// ==========================================
+const MEMBRETE_PATHS = {
+    header: 'plantilla/membrete-superior.png',
+    footer: 'plantilla/membrete-inferior.png',
+    sello:  'plantilla/sello-vigilado.png'
+};
+
+async function cargarMembreteBytes() {
+    const entries = await Promise.all(Object.entries(MEMBRETE_PATHS).map(async ([key, path]) => {
+        const resp = await fetch(path);
+        if (!resp.ok) throw new Error(`No se pudo cargar ${path} (HTTP ${resp.status})`);
+        const bytes = new Uint8Array(await resp.arrayBuffer());
+        return [key, bytes];
+    }));
+    return Object.fromEntries(entries);
+}
+
+async function embedMembrete(pdfDoc, membreteBytes) {
+    if (!membreteBytes) return null;
+    const [header, footer, sello] = await Promise.all([
+        pdfDoc.embedPng(membreteBytes.header),
+        pdfDoc.embedPng(membreteBytes.footer),
+        pdfDoc.embedPng(membreteBytes.sello)
+    ]);
+    return { header, footer, sello };
+}
+
+// ==========================================
 // DETECTAR COLUMNAS DINÁMICAMENTE POR ENCABEZADO
 // ==========================================
 function detectarColumnas(headersRow, mapaBuscado) {
@@ -179,21 +208,31 @@ function resetSignatureUI() {
 }
 
 // ==========================================
-// SELECTOR
+// SELECTORES (cada grupo .selector-buttons se maneja por separado)
 // ==========================================
 function setupOutputSelector() {
-    const btns = document.querySelectorAll('.selector-btn');
-    btns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            btns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+    document.querySelectorAll('.selector-buttons').forEach(group => {
+        const btns = group.querySelectorAll('.selector-btn');
+        btns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                btns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
         });
     });
 }
 
+function getSelectedValue(groupId, fallback) {
+    const activeBtn = document.querySelector(`#${groupId} .selector-btn.active`);
+    return activeBtn ? activeBtn.dataset.value : fallback;
+}
+
 function getSelectedOutputType() {
-    const activeBtn = document.querySelector('.selector-btn.active');
-    return activeBtn ? activeBtn.dataset.value : 'single';
+    return getSelectedValue('outputTypeSelector', 'single');
+}
+
+function getSelectedFormatoOficio() {
+    return getSelectedValue('formatoSelector', 'plantilla');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -225,7 +264,7 @@ function drawJustifiedLine(page, line, font, size, x, y, maxWidth, color) {
 // ==========================================
 // DIBUJAR UN OFICIO EN UN PDF
 // ==========================================
-async function dibujarOficio(pdfDoc, font, fontBold, emp, fecha, firmante, cargo, elaboradoPor, firmaImage, cfg) {
+async function dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, firmante, cargo, elaboradoPor, firmaImage, cfg, membrete) {
     const W = 612;
     const H = 792;
     const ML = cfg.marginLeft;
@@ -236,18 +275,42 @@ async function dibujarOficio(pdfDoc, font, fontBold, emp, fecha, firmante, cargo
     const maxWidth = W - ML - MR;
     const black = PDFLib.rgb(0, 0, 0);
 
-    let page = pdfDoc.addPage([W, H]);
+    const drawMembrete = (p) => {
+        if (!membrete) return;
+        if (membrete.header) {
+            const h = W * (membrete.header.height / membrete.header.width);
+            p.drawImage(membrete.header, { x: 0, y: H - h, width: W, height: h });
+        }
+        let footerH = 0;
+        if (membrete.footer) {
+            footerH = W * (membrete.footer.height / membrete.footer.width);
+            p.drawImage(membrete.footer, { x: 0, y: 0, width: W, height: footerH });
+        }
+        if (membrete.sello) {
+            const selloH = 60;
+            const selloW = selloH * (membrete.sello.width / membrete.sello.height);
+            p.drawImage(membrete.sello, { x: W - selloW - 12, y: footerH + 14, width: selloW, height: selloH });
+        }
+    };
+
+    const newPage = () => {
+        const p = pdfDoc.addPage([W, H]);
+        drawMembrete(p);
+        return p;
+    };
+
+    let page = newPage();
     let y = H - MT;
 
     const newPageIfNeeded = (needed) => {
         if (y - needed < MB) {
-            page = pdfDoc.addPage([W, H]);
+            page = newPage();
             y = H - MT;
         }
     };
 
     const drawParagraph = (text, opts = {}) => {
-        const f = opts.bold ? fontBold : font;
+        const f = opts.font || (opts.bold ? fontBold : font);
         const s = opts.size || fontSize;
         const lh = s * cfg.lineSpacing;
         const lines = wrapText(text, f, s, maxWidth);
@@ -304,8 +367,8 @@ async function dibujarOficio(pdfDoc, font, fontBold, emp, fecha, firmante, cargo
     drawParagraph('Favor hacer extensiva esta información a sus empleados.');
     gap(10);
 
-    drawParagraph('Atentamente,');
-    gap(15);
+    drawParagraph('Cordialmente,');
+    gap(6);
 
     // --- Firma imagen ---
     if (firmaImage) {
@@ -316,8 +379,8 @@ async function dibujarOficio(pdfDoc, font, fontBold, emp, fecha, firmante, cargo
             } else {
                 embeddedImg = await pdfDoc.embedJpg(firmaImage.bytes);
             }
-            const maxH = 55;
-            const maxW = 180;
+            const maxH = 42;
+            const maxW = 160;
             const dims = embeddedImg.scale(1);
             let scale = 1;
             if (dims.height > maxH) scale = maxH / dims.height;
@@ -325,19 +388,19 @@ async function dibujarOficio(pdfDoc, font, fontBold, emp, fecha, firmante, cargo
             const imgW = dims.width * scale;
             const imgH = dims.height * scale;
 
-            newPageIfNeeded(imgH + 10);
+            newPageIfNeeded(imgH + 8);
             page.drawImage(embeddedImg, {
                 x: ML,
                 y: y - imgH,
                 width: imgW,
                 height: imgH
             });
-            y -= (imgH + 6);
+            y -= (imgH + 4);
         } catch (e) {
             console.warn('No se pudo insertar la firma:', e);
         }
     } else {
-        gap(30);
+        gap(22);
     }
 
     drawParagraph(firmante, { bold: true });
@@ -351,7 +414,7 @@ async function dibujarOficio(pdfDoc, font, fontBold, emp, fecha, firmante, cargo
     gap(10);
 
     if (elaboradoPor) {
-        drawParagraph(`Transcriptor: ${elaboradoPor}`);
+        drawParagraph(`Transcriptor: ${elaboradoPor}`, { font: fontItalic, size: 9 });
     }
 
     return page;
@@ -367,8 +430,11 @@ async function generarOficios() {
     const cargo = (document.getElementById('firmanteCargo').value || '').trim();
     const elaboradoPor = (document.getElementById('elaboradoPor').value || '').trim();
     const outputType = getSelectedOutputType();
+    const formatoOficio = getSelectedFormatoOficio();
     const signatureFile = document.getElementById('signatureInput').files[0];
-    const cfg = DEFAULT_CONFIG;
+    const cfg = formatoOficio === 'plantilla'
+        ? { ...DEFAULT_CONFIG, marginBottom: 72 }
+        : DEFAULT_CONFIG;
 
     if (!file) {
         alert('Por favor, carga el Excel.');
@@ -452,14 +518,27 @@ async function generarOficios() {
             firmaImage = { bytes, type: signatureFile.type };
         }
 
+        // ============ MEMBRETE (si se eligió "con plantilla") ============
+        let membreteBytes = null;
+        if (formatoOficio === 'plantilla') {
+            try {
+                membreteBytes = await cargarMembreteBytes();
+            } catch (errMembrete) {
+                console.error('No se pudo cargar la plantilla del membrete:', errMembrete);
+                alert('No se pudo cargar la plantilla del membrete. Los oficios se generarán sin ella (en blanco).');
+            }
+        }
+
         const fecha = getFechaEspanol();
         const zip = new JSZip();
-        let masterPdf = null, masterFont = null, masterFontBold = null;
+        let masterPdf = null, masterFont = null, masterFontBold = null, masterFontItalic = null, masterMembrete = null;
 
         if (outputType === 'single') {
             masterPdf = await PDFLib.PDFDocument.create();
             masterFont = await masterPdf.embedFont(PDFLib.StandardFonts.Helvetica);
             masterFontBold = await masterPdf.embedFont(PDFLib.StandardFonts.HelveticaBold);
+            masterFontItalic = await masterPdf.embedFont(PDFLib.StandardFonts.HelveticaOblique);
+            masterMembrete = await embedMembrete(masterPdf, membreteBytes);
         }
 
         for (let i = 0; i < empresas.length; i++) {
@@ -468,12 +547,14 @@ async function generarOficios() {
 
             try {
                 if (outputType === 'single') {
-                    await dibujarOficio(masterPdf, masterFont, masterFontBold, emp, fecha, firmante, cargo, elaboradoPor, firmaImage, cfg);
+                    await dibujarOficio(masterPdf, masterFont, masterFontBold, masterFontItalic, emp, fecha, firmante, cargo, elaboradoPor, firmaImage, cfg, masterMembrete);
                 } else {
                     const pdfDoc = await PDFLib.PDFDocument.create();
                     const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
                     const fontBold = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
-                    await dibujarOficio(pdfDoc, font, fontBold, emp, fecha, firmante, cargo, elaboradoPor, firmaImage, cfg);
+                    const fontItalic = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaOblique);
+                    const membrete = await embedMembrete(pdfDoc, membreteBytes);
+                    await dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, firmante, cargo, elaboradoPor, firmaImage, cfg, membrete);
                     const pdfBytes = await pdfDoc.save();
                     const nombreLimpio = sanitizeFilename(emp.empresa);
                     zip.file(`${i + 1}. ${nombreLimpio}.pdf`, pdfBytes);
