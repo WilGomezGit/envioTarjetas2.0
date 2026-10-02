@@ -18,12 +18,31 @@ function normalizeKey(str, fillReplacement) {
         .toUpperCase();
 }
 
+// Mapa de bytes Windows-1252 (0x80-0x9F) mal decodificados como puntos de c\u00F3digo
+// Unicode crudos (t\u00EDpico de comillas/guiones "inteligentes" de Excel/Word mal le\u00EDdos).
+// Se traducen a su car\u00E1cter real, que s\u00ED es codificable en WinAnsi (pdf-lib).
+const CP1252_MOJIBAKE_MAP = {
+    0x80: '\u20AC', 0x82: '\u201A', 0x83: '\u0192', 0x84: '\u201E',
+    0x85: '\u2026', 0x86: '\u2020', 0x87: '\u2021', 0x88: '\u02C6',
+    0x89: '\u2030', 0x8A: '\u0160', 0x8B: '\u2039', 0x8C: '\u0152',
+    0x8E: '\u017D', 0x91: '\u2018', 0x92: '\u2019', 0x93: '\u201C',
+    0x94: '\u201D', 0x95: '\u2022', 0x96: '\u2013', 0x97: '\u2014',
+    0x98: '\u02DC', 0x99: '\u2122', 0x9A: '\u0161', 0x9B: '\u203A',
+    0x9C: '\u0153', 0x9E: '\u017E', 0x9F: '\u0178'
+};
+// Caracteres WinAnsi codificables fuera de ASCII/Latin-1, tras el mapeo anterior.
+const WINANSI_EXTRA_SAFE = new Set(Object.values(CP1252_MOJIBAKE_MAP));
+
 function sanitizeForPDF(str) {
     if (!str) return '';
     return String(str)
         .replace(/\uFFFD/g, '')
         .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
-        .replace(/\u00A0/g, ' ');
+        .replace(/[\u0080-\u009F]/g, ch => CP1252_MOJIBAKE_MAP[ch.charCodeAt(0)] || '')
+        .replace(/\u00A0/g, ' ')
+        // \u00DAltimo filtro de seguridad: elimina cualquier car\u00E1cter que WinAnsi no pueda
+        // codificar (fuera de ASCII imprimible, Latin-1 y los s\u00EDmbolos ya traducidos).
+        .replace(/[^\x20-\x7E\u00A0-\u00FF]/g, ch => WINANSI_EXTRA_SAFE.has(ch) ? ch : '');
 }
 
 function sanitizeForFilename(str) {
