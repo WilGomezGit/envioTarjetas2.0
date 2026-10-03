@@ -360,3 +360,23 @@ button:active {
         padding: 10px 16px;
     }
 }
+/* ==========================================
+   EXCEL DE EMPRESAS Y DETALLE
+   ========================================== */
+.sheet-row { margin-top: 8px; text-align: left; }
+.sheet-row label { display: block; font-weight: 600; color: #2c3e50; font-size: 0.85em; margin-bottom: 4px; }
+.sheet-row input[type="text"] {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 0.9em;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+.detalle { margin-top: 12px; }
+.detalle summary { cursor: pointer; font-weight: 600; color: #2c3e50; }
+.detalle-scroll { max-height: 420px; overflow: auto; margin-top: 8px; border: 1px solid #e0e0e0; border-radius: 6px; }
+.detalle-tabla { width: 100%; border-collapse: collapse; font-size: 0.78em; }
+.detalle-tabla th, .detalle-tabla td { padding: 5px 8px; border-bottom: 1px solid #eee; text-align: left; }
+.detalle-tabla th { position: sticky; top: 0; background: #f5f7fa; }
