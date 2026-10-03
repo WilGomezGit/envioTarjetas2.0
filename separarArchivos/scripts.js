@@ -294,7 +294,7 @@ function exportToExcel(filename = 'Archivo_CB_Separado.xlsx') {
         ...resultado.filas.map(f => [f.no, f.documento, f.tarjeta, f.nombre, f.empresa, f.cant])
     ];
     const sinDuplicados = [
-        ['No', 'CEDULA', 'TARJETA', 'EMPRESA', 'CANT'],
+        ['No', 'DOCUMENTO', 'TARJETA', 'EMPRESA', 'CANT'],
         ...resultado.empresas.map(e => [e.no, e.documento, e.tarjeta, e.empresa, e.cant])
     ];
 
