@@ -130,11 +130,12 @@ function parseCB(lines) {
 
 // A0: tarjeta [16,32), documento [37,52) (el [36] es el tipo de documento),
 // apellido1 [52,67), apellido2 [67,82), nombre1 [82,97), nombre2 [97,112).
-// Se indexa por tarjeta; el registro final de control del archivo no coincide con
-// ninguna tarjeta del CB, por lo que queda ignorado al cruzar.
+// Las líneas de trabajador empiezan con "01"; la última línea del archivo es informativa
+// (otro formato, empieza con el NIT) y se ignora. Se indexa por tarjeta.
 function parseA0(lines) {
     const porTarjeta = new Map();
     lines.forEach(line => {
+        if (!line.startsWith('01')) return;
         const tarjeta = line.substring(16, 32).trim();
         if (!tarjeta) return;
         const nombre = [
@@ -158,11 +159,10 @@ function combinar(cbRows, a0PorTarjeta) {
 
     const corrido = {};
     const sinA0 = [];
-    const usadas = new Set();
 
     const filas = cbRows.map((r, i) => {
         const a0 = a0PorTarjeta.get(r.tarjeta);
-        if (a0) usadas.add(r.tarjeta); else sinA0.push(r.tarjeta);
+        if (!a0) sinA0.push({ tarjeta: r.tarjeta, empresa: r.empresa });
         corrido[r.empresa] = (corrido[r.empresa] || 0) + 1;
         return {
             no: i + 1,
@@ -184,7 +184,13 @@ function combinar(cbRows, a0PorTarjeta) {
         empresas.push({ no: empresas.length + 1, documento: f.documento, tarjeta: f.tarjeta, empresa: f.empresa, cant: f.total });
     });
 
-    return { filas, empresas, sinA0, a0Sobrantes: a0PorTarjeta.size - usadas.size };
+    const tarjetasCB = new Set(cbRows.map(r => r.tarjeta));
+    const a0SinCB = [];
+    a0PorTarjeta.forEach((a0, tarjeta) => {
+        if (!tarjetasCB.has(tarjeta)) a0SinCB.push({ tarjeta, documento: a0.documento, nombre: a0.nombre });
+    });
+
+    return { filas, empresas, sinA0, a0SinCB };
 }
 
 // ==========================================
@@ -211,22 +217,36 @@ async function processFile() {
 
     renderTabla(resultado.filas);
 
-    const { filas, empresas, sinA0, a0Sobrantes } = resultado;
+    const { filas, empresas, sinA0, a0SinCB } = resultado;
     document.getElementById('topActions').style.display = 'flex';
     document.getElementById('resultsCount').textContent = `${filas.length} registros cargados · ${empresas.length} empresas`;
 
-    if (sinA0.length) {
+    if (sinA0.length || a0SinCB.length) {
         console.warn('Tarjetas del CB sin registro en el A0:', sinA0);
-        showMessage(
-            `⚠️ ${sinA0.length} tarjeta(s) del CB no se encontraron en el A0 (quedan sin apellidos y nombres). ` +
-            `Verifica que ambos archivos sean del mismo envío.<br>Ej.: ${sinA0.slice(0, 5).map(escapeHtml).join(', ')}` +
-            (sinA0.length > 5 ? ' …' : ''),
-            'warning'
-        );
+        console.warn('Registros del A0 sin tarjeta en el CB:', a0SinCB);
+        showMessage(mensajeDescuadre(sinA0, a0SinCB), 'warning');
     } else {
-        const nota = a0Sobrantes > 0 ? ` (${a0Sobrantes} registro(s) del A0 sin tarjeta en el CB, ignorados)` : '';
-        showMessage(`✅ ${filas.length} registros cruzados correctamente entre CB y A0${nota}.`, 'success');
+        showMessage(`✅ ${filas.length} registros cruzados correctamente entre CB y A0.`, 'success');
     }
+}
+
+// Alerta cuando los dos archivos no cuadran entre sí (en cualquiera de los dos sentidos).
+function mensajeDescuadre(sinA0, a0SinCB) {
+    const MAX = 10;
+    const lista = (items, fmt) =>
+        '<ul>' + items.slice(0, MAX).map(i => `<li>${fmt(i)}</li>`).join('') + '</ul>' +
+        (items.length > MAX ? `<div>… y ${items.length - MAX} más (ver consola F12).</div>` : '');
+
+    let html = '⚠️ Los archivos CB y A0 no cuadran. Revisa que sean del mismo envío:';
+    if (sinA0.length) {
+        html += `<br><br>${sinA0.length} tarjeta(s) del CB <u>no están en el A0</u> (quedan sin apellidos y nombres):` +
+            lista(sinA0, i => `${escapeHtml(i.tarjeta)} · ${escapeHtml(i.empresa)}`);
+    }
+    if (a0SinCB.length) {
+        html += `<br>${a0SinCB.length} registro(s) del A0 <u>no están en el CB</u> (no se incluyen en el Excel):` +
+            lista(a0SinCB, i => `${escapeHtml(i.tarjeta)} · ${escapeHtml(i.nombre)} (doc. ${escapeHtml(i.documento)})`);
+    }
+    return html;
 }
 
 function renderTabla(filas) {

@@ -458,3 +458,4 @@ tbody tr:hover {
         padding: 8px 4px;
     }
 }
+#message ul { margin: 6px 0 8px 0; padding-left: 20px; font-weight: 400; }
