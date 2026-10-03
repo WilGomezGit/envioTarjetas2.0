@@ -77,19 +77,28 @@ h1 {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.drop-zones {
+.file-status {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    gap: 12px;
+    margin-bottom: 4px;
 }
 
-.drop-zones .drop-zone {
-    margin-bottom: 0;
+.file-chip {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    background-color: #f5f5f5;
+    color: #7f8c8d;
+    font-size: 0.85em;
+    font-weight: 600;
+    word-break: break-all;
 }
 
-.drop-zone.loaded {
-    border-color: #2ecc71;
-    background-color: #f1fbf5;
+.file-chip.ok {
+    color: #1e7e34;
+    background-color: #d4edda;
+    border-color: #28a745;
 }
 
 #message {
@@ -371,9 +380,9 @@ tbody tr:hover {
         border-radius: 10px;
     }
 
-    .drop-zones {
+    .file-status {
         grid-template-columns: 1fr;
-        gap: 12px;
+        gap: 8px;
     }
 
     .drop-zone {

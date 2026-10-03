@@ -4,17 +4,60 @@
 // Resultado del último "Procesar"; el Excel se genera a partir de esto.
 let resultado = null;
 
-const ZONAS = {
-    cb: { zoneId: 'dropZoneCB', inputId: 'fileInput',   texto: 'Arrastra el archivo CB aquí' },
-    a0: { zoneId: 'dropZoneA0', inputId: 'fileInputA0', texto: 'Arrastra el archivo A0 aquí' }
-};
+// Archivos planos cargados (se detectan por el nombre del archivo).
+const archivos = { cb: null, a0: null };
+
+const DROP_TEXTO = 'Arrastra aquí los archivos CB y A0';
+const DROP_SUBTEXTO = 'o haz clic para seleccionarlos (puedes elegir los dos a la vez)';
+
+function tipoDeArchivo(nombre) {
+    const n = nombre.toUpperCase();
+    if (n.startsWith('CB636876')) return 'cb';
+    if (n.startsWith('A0')) return 'a0';
+    return null;
+}
 
 // ==========================================
 // DRAG & DROP
 // ==========================================
-function setupDropZone({ zoneId, inputId }) {
-    const dropZone = document.getElementById(zoneId);
-    const fileInput = document.getElementById(inputId);
+function agregarArchivos(fileList) {
+    const noReconocidos = [];
+    Array.from(fileList).forEach(file => {
+        const tipo = tipoDeArchivo(file.name);
+        if (tipo) archivos[tipo] = file; else noReconocidos.push(file.name);
+    });
+    actualizarEstadoArchivos();
+
+    if (noReconocidos.length) {
+        showMessage(
+            `⚠️ No reconocí: ${noReconocidos.map(escapeHtml).join(', ')}.<br>` +
+            'El archivo CB debe comenzar con "CB636876" y el A0 con "A0".',
+            'warning'
+        );
+    } else {
+        showMessage('', '');
+    }
+}
+
+function actualizarEstadoArchivos() {
+    [['cb', 'statusCB', 'CB'], ['a0', 'statusA0', 'A0']].forEach(([tipo, id, etiqueta]) => {
+        const chip = document.getElementById(id);
+        const file = archivos[tipo];
+        chip.textContent = file ? `✅ ${etiqueta}: ${file.name}` : `${etiqueta}: pendiente`;
+        chip.classList.toggle('ok', Boolean(file));
+    });
+
+    const dropZone = document.getElementById('dropZone');
+    const listos = archivos.cb && archivos.a0;
+    dropZone.querySelector('.drop-text').textContent = listos ? '✅ Archivos cargados' : DROP_TEXTO;
+    dropZone.querySelector('.drop-subtext').textContent = listos
+        ? 'Presiona "Procesar" (o haz clic para reemplazarlos)'
+        : DROP_SUBTEXTO;
+}
+
+function setupDropZone() {
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
     if (!dropZone || !fileInput) return;
 
     dropZone.addEventListener('click', () => fileInput.click());
@@ -31,41 +74,16 @@ function setupDropZone({ zoneId, inputId }) {
     dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
         dropZone.classList.remove('dragover');
-        if (e.dataTransfer.files.length) {
-            fileInput.files = e.dataTransfer.files;
-            updateDropZoneText(zoneId, e.dataTransfer.files[0].name);
-        }
+        if (e.dataTransfer.files.length) agregarArchivos(e.dataTransfer.files);
     });
 
     fileInput.addEventListener('change', () => {
-        if (fileInput.files.length) {
-            updateDropZoneText(zoneId, fileInput.files[0].name);
-        }
+        if (fileInput.files.length) agregarArchivos(fileInput.files);
+        fileInput.value = '';
     });
 }
 
-function updateDropZoneText(zoneId, fileName) {
-    const dropZone = document.getElementById(zoneId);
-    const textEl = dropZone.querySelector('.drop-text');
-    const subEl  = dropZone.querySelector('.drop-subtext');
-    if (textEl) textEl.textContent = '✅ Archivo cargado';
-    if (subEl)  subEl.textContent  = fileName;
-    dropZone.classList.add('loaded');
-}
-
-function resetDropZone({ zoneId, inputId, texto }) {
-    const dropZone = document.getElementById(zoneId);
-    const textEl = dropZone.querySelector('.drop-text');
-    const subEl  = dropZone.querySelector('.drop-subtext');
-    if (textEl) textEl.textContent = texto;
-    if (subEl)  subEl.textContent  = 'o haz clic para seleccionarlo';
-    dropZone.classList.remove('loaded');
-    document.getElementById(inputId).value = '';
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    Object.values(ZONAS).forEach(setupDropZone);
-});
+document.addEventListener('DOMContentLoaded', setupDropZone);
 
 // ==========================================
 // MENSAJES
@@ -173,20 +191,11 @@ function combinar(cbRows, a0PorTarjeta) {
 // PROCESAR
 // ==========================================
 async function processFile() {
-    const cbFile = document.getElementById('fileInput').files[0];
-    const a0File = document.getElementById('fileInputA0').files[0];
+    const { cb: cbFile, a0: a0File } = archivos;
 
     if (!cbFile || !a0File) {
         const faltan = [!cbFile && 'CB', !a0File && 'A0'].filter(Boolean).join(' y ');
-        alert(`Por favor selecciona el archivo ${faltan}.`);
-        return;
-    }
-    if (!cbFile.name.toUpperCase().startsWith('CB636876')) {
-        alert('*** ¡Error! *** Por favor, cargue el archivo CB correcto (debe comenzar con "CB636876").');
-        return;
-    }
-    if (!a0File.name.toUpperCase().startsWith('A0')) {
-        alert('*** ¡Error! *** Por favor, cargue el archivo A0 correcto (debe comenzar con "A0").');
+        alert(`Falta cargar el archivo ${faltan}.`);
         return;
     }
 
@@ -242,7 +251,9 @@ function clearTable() {
     document.getElementById('topActions').style.display = 'none';
     document.getElementById('resultsCount').textContent = '0 registros';
     showMessage('', '');
-    Object.values(ZONAS).forEach(resetDropZone);
+    archivos.cb = null;
+    archivos.a0 = null;
+    actualizarEstadoArchivos();
 }
 
 // ==========================================

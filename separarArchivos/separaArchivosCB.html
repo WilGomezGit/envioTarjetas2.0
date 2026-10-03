@@ -14,20 +14,16 @@
     </div>
 
     <div class="file-button-container">
-        <!-- Zonas Drag & Drop: CB (empresa, tarjeta) y A0 (documento, apellidos y nombres) -->
-        <div class="drop-zones">
-            <div id="dropZoneCB" class="drop-zone">
-                <div class="drop-icon">📁</div>
-                <span class="drop-text">Arrastra el archivo CB aquí</span>
-                <span class="drop-subtext">o haz clic para seleccionarlo</span>
-                <input type="file" id="fileInput" class="file-input-hidden">
-            </div>
-            <div id="dropZoneA0" class="drop-zone">
-                <div class="drop-icon">👤</div>
-                <span class="drop-text">Arrastra el archivo A0 aquí</span>
-                <span class="drop-subtext">o haz clic para seleccionarlo</span>
-                <input type="file" id="fileInputA0" class="file-input-hidden">
-            </div>
+        <!-- Una sola zona para los dos archivos planos: se detectan por el nombre -->
+        <div id="dropZone" class="drop-zone">
+            <div class="drop-icon">📁</div>
+            <span class="drop-text">Arrastra aquí los archivos CB y A0</span>
+            <span class="drop-subtext">o haz clic para seleccionarlos (puedes elegir los dos a la vez)</span>
+            <input type="file" id="fileInput" class="file-input-hidden" multiple>
+        </div>
+        <div class="file-status">
+            <div id="statusCB" class="file-chip">CB: pendiente</div>
+            <div id="statusA0" class="file-chip">A0: pendiente</div>
         </div>
 
         <!-- Botones de acción -->
