@@ -13,6 +13,10 @@ function normalizeText(str) {
         .toUpperCase();
 }
 
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 function downloadBlob(blob, filename) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -160,28 +164,26 @@ function extractOficioCompany(text) {
 }
 
 // ==========================================
-// EXTRAER NOMBRE DE EMPRESA DEL REPORTE
-// El formato es: "... Nit: XXX Empresa: NOMBRE_EMPRESA CEDULA_TRABAJADOR NOMBRE_TRABAJADOR..."
-// (todo junto, sin saltos de línea). OJO: antes del label real "Empresa:" aparece
-// la frase "Total Tarjetas de la Empresa: N", que también contiene "Empresa:" y
-// hace que una búsqueda ingenua del primer "Empresa:" del texto tome ese valor
-// en vez del nombre real. Por eso anclamos la búsqueda a la secuencia "Nit: X Empresa:".
+// EXTRAER DATOS DE LA PLANILLA (REPORTE)
+// La primera página de cada planilla dice (todo junto, sin saltos de línea):
+//   "Total Tarjetas de la Empresa: N  [Nit: X]  Empresa: NOMBRE  1 CEDULA NOMBRE_TRABAJADOR ..."
+// El "Nit: X" es opcional (hay planillas sin NIT). Se ancla en "Total Tarjetas de la Empresa: N"
+// para no confundir su "Empresa:" con el label real, y el nombre se corta antes del número de
+// fila + documento del primer trabajador (si no, el "1" de la fila quedaría pegado al nombre).
+// Las páginas siguientes de una planilla larga no repiten este encabezado.
 // ==========================================
+const REPORT_HEADER_RE = /Total\s+Tarjetas\s+de\s+la\s+Empresa\s*:\s*(\d+)\s+(?:Nit\s*:\s*[\d.\-\s]*?)?Empresa\s*:\s*/i;
+
 function extractReportCompany(text) {
     if (!text) return null;
-    const anchor = text.match(/Nit\s*:\s*\S+\s+Empresa\s*:\s*/i);
+    const anchor = text.match(REPORT_HEADER_RE);
     if (!anchor) return null;
-    let after = text.substring(anchor.index + anchor[0].length).trim();
+    const after = text.substring(anchor.index + anchor[0].length).trim();
 
     let cutIdx = after.length;
-
-    // 1) Cortar en salto de línea (por si existe)
-    const nlIdx = after.search(/[\r\n]/);
-    if (nlIdx > 0 && nlIdx < cutIdx) cutIdx = nlIdx;
-
-    // 2) Cortar en marcadores clave
     const cutPatterns = [
-        /\s+\d{6,}/,                        // ← CLAVE: cédula del primer trabajador (6+ dígitos)
+        /\s+\d{1,3}\s+\d{5,}/,              // No. de fila + documento del primer trabajador
+        /\s+\d{6,}/,                        // documento del primer trabajador
         /\s+No\./i,
         /\s+CEDULA\b/i,
         /\s+NOMBRE\s+TRABAJADOR/i,
@@ -189,18 +191,114 @@ function extractReportCompany(text) {
         /\s+Nit\s*:/i,
         /\s+Total\s+Tarjetas/i
     ];
-
     for (const p of cutPatterns) {
         const m = after.match(p);
-        if (m && m.index > 0 && m.index < cutIdx) {
-            cutIdx = m.index;
-        }
+        if (m && m.index > 0 && m.index < cutIdx) cutIdx = m.index;
     }
 
     let name = after.substring(0, cutIdx).trim();
     name = name.replace(/[\s.,;:\-]+$/, '').trim();
     if (name.length > 100) name = name.substring(0, 100).trim();
     return name || null;
+}
+
+function extractReportCantidad(text) {
+    const m = text && text.match(REPORT_HEADER_RE);
+    return m ? parseInt(m[1], 10) : null;
+}
+
+// Cantidad que declara el oficio: "Remito a usted listado, 4 Tarjeta (s) Corporativa (s)..."
+function extractOficioCantidad(text) {
+    const m = text && text.match(/listado,?\s*(\d+)\s*Tarjeta/i);
+    return m ? parseInt(m[1], 10) : null;
+}
+
+// Una planilla puede ocupar varias páginas: la primera trae el encabezado con la empresa y las
+// siguientes no. Se agrupan para tratarlas (y copiarlas al PDF final) como una sola unidad.
+function agruparPaginasReporte(textos) {
+    const unidades = [];
+    textos.forEach((texto, i) => {
+        if (unidades.length === 0 || REPORT_HEADER_RE.test(texto)) {
+            unidades.push({ nombre: extractReportCompany(texto), cant: extractReportCantidad(texto), paginas: [i], texto });
+        } else {
+            const u = unidades[unidades.length - 1];
+            u.paginas.push(i);
+            u.texto += ' ' + texto;
+        }
+    });
+    return unidades;
+}
+
+// ==========================================
+// EMPAREJAR OFICIOS CON PLANILLAS
+// Nunca se adivina por posición. En orden de certeza:
+//   1) nombre idéntico;
+//   2) nombre truncado: el CB corta el nombre de la empresa a 40 caracteres, así que el de la
+//      planilla puede ser solo el comienzo del nombre completo del oficio. Se acepta si la
+//      cantidad de tarjetas coincide y la pareja es única en ambos lados;
+//   3) el nombre (12+ caracteres) de uno aparece dentro del texto del otro, con cantidad
+//      compatible y pareja única en ambos lados.
+// Todo lo demás queda sin emparejar para que se revise.
+// oficios / reportes: [{ nombre, cant, texto }] con nombre y texto ya normalizados.
+// ==========================================
+function emparejar(oficios, reportes) {
+    const resultado = oficios.map(() => ({ reporte: -1, tipo: null }));
+    const usado = new Array(reportes.length).fill(false);
+    const cantCompatible = (a, b) => a.cant == null || b.cant == null || a.cant === b.cant;
+    const asignar = (i, j, tipo) => { resultado[i] = { reporte: j, tipo }; usado[j] = true; };
+    const MIN_PREFIJO = 20;   // el CB trunca a 40 caracteres: un prefijo corto no es evidencia
+    const esPrefijo = (a, b) => {
+        const corto = a.length < b.length ? a : b;
+        const largo = a.length < b.length ? b : a;
+        return corto.length >= MIN_PREFIJO && largo.startsWith(corto);
+    };
+
+    // 1) Nombre idéntico
+    oficios.forEach((o, i) => {
+        if (!o.nombre) return;
+        const cands = reportes.map((r, j) => j).filter(j => !usado[j] && reportes[j].nombre === o.nombre);
+        const j = cands.find(j => cantCompatible(o, reportes[j])) ?? cands[0];
+        if (j !== undefined) asignar(i, j, 'exacto');
+    });
+
+    // 2) Nombre truncado + misma cantidad, solo si la pareja es única
+    const pares = [];
+    oficios.forEach((o, i) => {
+        if (resultado[i].reporte >= 0 || !o.nombre) return;
+        reportes.forEach((r, j) => {
+            if (usado[j] || !r.nombre || !cantCompatible(o, r)) return;
+            if (esPrefijo(o.nombre, r.nombre)) pares.push([i, j]);
+        });
+    });
+    pares.forEach(([i, j]) => {
+        if (pares.filter(([a, b]) => a === i || b === j).length === 1) asignar(i, j, 'truncado');
+    });
+
+    // 3) El nombre aparece dentro del texto del otro; también exige pareja única
+    const MIN_CONTENIDO = 12;
+    const pares3 = [];
+    oficios.forEach((o, i) => {
+        if (resultado[i].reporte >= 0) return;
+        reportes.forEach((r, j) => {
+            if (usado[j] || !cantCompatible(o, r)) return;
+            const oficioEnReporte = o.nombre && o.nombre.length >= MIN_CONTENIDO && r.texto.includes(o.nombre);
+            const reporteEnOficio = r.nombre && r.nombre.length >= MIN_CONTENIDO && o.texto.includes(r.nombre);
+            if (oficioEnReporte || reporteEnOficio) pares3.push([i, j]);
+        });
+    });
+    pares3.forEach(([i, j]) => {
+        if (pares3.filter(([a, b]) => a === i || b === j).length === 1) asignar(i, j, 'contenido');
+    });
+
+    // Sugerencias para lo que quedó sin pareja: nombre parecido pero cantidad distinta
+    const sugerencias = new Map();
+    oficios.forEach((o, i) => {
+        if (resultado[i].reporte >= 0 || !o.nombre) return;
+        const js = reportes.map((r, j) => j).filter(j => !usado[j] && reportes[j].nombre && (reportes[j].nombre === o.nombre || esPrefijo(o.nombre, reportes[j].nombre)));
+        if (js.length) sugerencias.set(i, js);
+    });
+
+    return { resultado, usado, sugerencias };
 }
 
 // ==========================================
@@ -236,134 +334,94 @@ async function combinarPDFs() {
         messageEl.textContent = '⏳ Extrayendo texto de los reportes...';
         const reportesTexts = await extractPageTexts(pdfFile2);
 
-        // 3. Extraer nombres de empresa
+        // 3. Datos de cada oficio y de cada planilla (una planilla puede ocupar varias páginas)
+        const unidades = agruparPaginasReporte(reportesTexts);
         const oficioCompanies = oficiosTexts.map(t => extractOficioCompany(t));
-        const reportCompanies = reportesTexts.map(t => extractReportCompany(t));
-        const normOficioCompanies = oficioCompanies.map(c => normalizeText(c));
-        const normReportCompanies = reportCompanies.map(c => normalizeText(c));
+        const oficioCants = oficiosTexts.map(t => extractOficioCantidad(t));
+        const oficiosN = oficiosTexts.map((t, i) => ({ nombre: normalizeText(oficioCompanies[i]), cant: oficioCants[i], texto: normalizeText(t) }));
+        const reportesN = unidades.map(u => ({ nombre: normalizeText(u.nombre), cant: u.cant, texto: normalizeText(u.texto) }));
+        const nombreReporte = j => unidades[j].nombre || '(sin nombre)';
+        const nombreOficio = i => oficioCompanies[i] || '(sin nombre)';
 
         // ============= DIAGNÓSTICO =============
         console.log('═══════════════════════════════════════════');
         console.log('EMPRESAS EN OFICIOS (primeras 15):');
-        oficioCompanies.forEach((c, i) => { if (i < 15) console.log(`  Oficio ${i+1}: "${c}"`); });
-        console.log('EMPRESAS EN REPORTES (primeras 15):');
-        reportCompanies.forEach((c, i) => { if (i < 15) console.log(`  Reporte ${i+1}: "${c}"`); });
+        oficioCompanies.forEach((c, i) => { if (i < 15) console.log(`  Oficio ${i+1}: "${c}" (${oficioCants[i]} tarjetas)`); });
+        console.log('EMPRESAS EN PLANILLAS (primeras 15):');
+        unidades.forEach((u, j) => { if (j < 15) console.log(`  Planilla ${j+1} (pág. ${u.paginas[0] + 1}): "${u.nombre}" (${u.cant} tarjetas)`); });
         console.log('═══════════════════════════════════════════');
 
-        // 4. Emparejamiento con doble estrategia (nunca se adivina por posición)
-        const matches = [];
-        const usedReporte = new Set();
+        // 4. Emparejamiento (nunca se adivina por posición)
+        const { resultado: matches, usado: usedReporte, sugerencias } = emparejar(oficiosN, reportesN);
 
-        for (let i = 0; i < oficiosTexts.length; i++) {
-            let found = -1;
-
-            // Estrategia A: buscar el nombre del OFICIO en cada REPORTE
-            if (normOficioCompanies[i] && normOficioCompanies[i].length >= 5) {
-                let bestLen = 0, bestIdx = -1;
-                for (let j = 0; j < reportesTexts.length; j++) {
-                    if (usedReporte.has(j)) continue;
-                    const normRep = normalizeText(reportesTexts[j]);
-                    if (normRep.includes(normOficioCompanies[i]) && normOficioCompanies[i].length > bestLen) {
-                        bestLen = normOficioCompanies[i].length;
-                        bestIdx = j;
-                    }
-                }
-                if (bestIdx >= 0) found = bestIdx;
-            }
-
-            // Estrategia B: buscar el nombre del REPORTE en el OFICIO
-            if (found < 0) {
-                const normOficio = normalizeText(oficiosTexts[i]);
-                let bestLen = 0, bestIdx = -1;
-                for (let j = 0; j < reportesTexts.length; j++) {
-                    if (usedReporte.has(j)) continue;
-                    const normR = normReportCompanies[j];
-                    if (!normR || normR.length < 5) continue;
-                    if (normOficio.includes(normR) && normR.length > bestLen) {
-                        bestLen = normR.length;
-                        bestIdx = j;
-                    }
-                }
-                if (bestIdx >= 0) found = bestIdx;
-            }
-
-            matches.push({ oficio: i, reporte: found });
-            if (found >= 0) usedReporte.add(found);
-        }
-
-        // 5. Diagnóstico de matches
-        console.log('MATCHES (primeros 20):');
-        matches.slice(0, 20).forEach(m => {
-            const o = oficioCompanies[m.oficio] || '?';
-            const r = m.reporte >= 0 ? reportCompanies[m.reporte] : 'NO MATCH';
-            console.log(`  Oficio ${m.oficio+1} "${o}" → Reporte ${m.reporte+1} "${r}"`);
-        });
-
-        // Oficios que no encontraron reporte, y reportes que ningún oficio reclamó
-        const oficiosSinReporte = matches.filter(m => m.reporte < 0).map(m => m.oficio);
+        const oficiosSinReporte = [];
+        matches.forEach((m, i) => { if (m.reporte < 0) oficiosSinReporte.push(i); });
         const reportesSinOficio = [];
-        for (let j = 0; j < reportesTexts.length; j++) {
-            if (!usedReporte.has(j)) reportesSinOficio.push(j);
-        }
+        usedReporte.forEach((u, j) => { if (!u) reportesSinOficio.push(j); });
+        const porTruncado = matches.map((m, i) => ({ i, m })).filter(x => x.m.tipo === 'truncado');
+        const cantDistinta = matches.map((m, i) => ({ i, m })).filter(x =>
+            x.m.reporte >= 0 && oficioCants[x.i] != null && unidades[x.m.reporte].cant != null && oficioCants[x.i] !== unidades[x.m.reporte].cant);
+        const emparejados = totalOficios - oficiosSinReporte.length;
 
         console.log('RESUMEN:');
-        console.log(`  Oficios: ${totalOficios}, Reportes: ${totalReportes}`);
-        console.log(`  Emparejados: ${totalOficios - oficiosSinReporte.length}`);
-        if (oficiosSinReporte.length > 0) {
-            console.log('  Oficios sin reporte:');
-            oficiosSinReporte.forEach(p => console.log(`    Oficio ${p + 1}: "${oficioCompanies[p]}"`));
-        }
-        if (reportesSinOficio.length > 0) {
-            console.log('  Reportes sin oficio:');
-            reportesSinOficio.forEach(p => console.log(`    Reporte ${p + 1}: "${reportCompanies[p]}"`));
-        }
+        console.log(`  Oficios: ${totalOficios}, Planillas: ${unidades.length} (${totalReportes} páginas)`);
+        console.log(`  Emparejados: ${emparejados} (por nombre truncado + cantidad: ${porTruncado.length})`);
+        porTruncado.forEach(x => console.log(`    truncado: Oficio ${x.i + 1} "${nombreOficio(x.i)}" ↔ Planilla "${nombreReporte(x.m.reporte)}"`));
+        oficiosSinReporte.forEach(p => console.log(`  Oficio sin planilla ${p + 1}: "${nombreOficio(p)}" (${oficioCants[p]})`));
+        reportesSinOficio.forEach(p => console.log(`  Planilla sin oficio ${p + 1}: "${nombreReporte(p)}" (${unidades[p].cant})`));
         console.log('═══════════════════════════════════════════');
 
-        // 6. Panel de resultado
+        // 5. Panel de resultado
+        const ul = (items, fmt, max = 15) =>
+            '<ul>' + items.slice(0, max).map(x => `<li>${fmt(x)}</li>`).join('') +
+            (items.length > max ? `<li>... y ${items.length - max} más</li>` : '') + '</ul>';
+        const esc = escapeHtml;
+        const sugerido = i => {
+            const js = sugerencias.get(i);
+            return js ? ` — posible planilla con cantidad distinta: "${esc(nombreReporte(js[0]))}" (${unidades[js[0]].cant} tarjetas)` : '';
+        };
+
         let html = '<div class="validation-box">';
-        html += `<h3>📋 Resultado del análisis</h3>`;
-        html += `<ul>`;
+        html += `<h3>📋 Resultado del análisis</h3><ul>`;
         html += `<li>📄 Oficios: <strong>${totalOficios}</strong> páginas</li>`;
-        html += `<li>📄 Reportes: <strong>${totalReportes}</strong> páginas</li>`;
-        html += `<li>🔗 Emparejados: <strong>${totalOficios - oficiosSinReporte.length}</strong></li>`;
+        html += `<li>📄 Planillas: <strong>${unidades.length}</strong> (${totalReportes} páginas)</li>`;
+        html += `<li>🔗 Emparejados: <strong>${emparejados}</strong></li>`;
+        if (porTruncado.length > 0) {
+            html += `<li>ℹ️ Emparejados por nombre truncado + misma cantidad (el CB corta el nombre; revisa que estén bien): <strong>${porTruncado.length}</strong>` +
+                ul(porTruncado, x => `Oficio ${x.i + 1} "${esc(nombreOficio(x.i))}" ↔ Planilla "${esc(nombreReporte(x.m.reporte))}" (${oficioCants[x.i]} tarjetas)`) + `</li>`;
+        }
+        if (cantDistinta.length > 0) {
+            html += `<li>⚠️ Emparejados pero con cantidad distinta (revísalos): <strong>${cantDistinta.length}</strong>` +
+                ul(cantDistinta, x => `"${esc(nombreOficio(x.i))}": oficio ${oficioCants[x.i]} vs planilla ${unidades[x.m.reporte].cant}`) + `</li>`;
+        }
         if (oficiosSinReporte.length > 0) {
-            html += `<li>⚠️ Oficios sin reporte (no tienen reporte, se incluyen solos): <strong>${oficiosSinReporte.length}</strong><ul>`;
-            oficiosSinReporte.slice(0, 15).forEach(p => {
-                html += `<li>Oficio ${p + 1}: "${oficioCompanies[p] || '(sin nombre)'}"</li>`;
-            });
-            if (oficiosSinReporte.length > 15) html += `<li>... y ${oficiosSinReporte.length - 15} más</li>`;
-            html += `</ul></li>`;
+            html += `<li>⚠️ Oficios sin planilla (se incluyen solos): <strong>${oficiosSinReporte.length}</strong>` +
+                ul(oficiosSinReporte, p => `Oficio ${p + 1}: "${esc(nombreOficio(p))}" (${oficioCants[p] ?? '?'} tarjetas)${sugerido(p)}`) + `</li>`;
         }
         if (reportesSinOficio.length > 0) {
-            html += `<li>⚠️ Reportes sin oficio (no hay oficio, se anexan al final): <strong>${reportesSinOficio.length}</strong><ul>`;
-            reportesSinOficio.slice(0, 15).forEach(p => {
-                html += `<li>Reporte ${p + 1}: "${reportCompanies[p] || '(sin nombre)'}"</li>`;
-            });
-            if (reportesSinOficio.length > 15) html += `<li>... y ${reportesSinOficio.length - 15} más</li>`;
-            html += `</ul></li>`;
+            html += `<li>⚠️ Planillas sin oficio (se anexan al final): <strong>${reportesSinOficio.length}</strong>` +
+                ul(reportesSinOficio, p => `Planilla pág. ${unidades[p].paginas[0] + 1}: "${esc(nombreReporte(p))}" (${unidades[p].cant ?? '?'} tarjetas)`) + `</li>`;
         }
-        html += `</ul>`;
-        html += '</div>';
+        html += `</ul></div>`;
         reportEl.innerHTML = html;
 
-        // 7. Confirmar si hay pendientes (nunca se fuerza un match por posición)
+        // 6. Confirmar si hay pendientes (nunca se fuerza un match por posición)
         if (oficiosSinReporte.length > 0 || reportesSinOficio.length > 0) {
             let detalle = '';
             if (oficiosSinReporte.length > 0) {
-                detalle += `\nOficios SIN reporte (no se hacen/combinan porque no tienen reporte) — ${oficiosSinReporte.length}:\n` +
-                    oficiosSinReporte.slice(0, 10).map(p => `  • Oficio pág. ${p + 1}: "${oficioCompanies[p] || '(sin nombre)'}"`).join('\n');
+                detalle += `\nOficios SIN planilla (se incluyen solos) — ${oficiosSinReporte.length}:\n` +
+                    oficiosSinReporte.slice(0, 10).map(p => `  • Oficio pág. ${p + 1}: "${nombreOficio(p)}" (${oficioCants[p] ?? '?'})`).join('\n');
                 if (oficiosSinReporte.length > 10) detalle += `\n  ... y ${oficiosSinReporte.length - 10} más`;
             }
             if (reportesSinOficio.length > 0) {
-                detalle += `\n\nReportes SIN oficio (no se emparejan porque no hay oficio) — ${reportesSinOficio.length}:\n` +
-                    reportesSinOficio.slice(0, 10).map(p => `  • Reporte pág. ${p + 1}: "${reportCompanies[p] || '(sin nombre)'}"`).join('\n');
+                detalle += `\n\nPlanillas SIN oficio (se anexan al final) — ${reportesSinOficio.length}:\n` +
+                    reportesSinOficio.slice(0, 10).map(p => `  • Planilla pág. ${unidades[p].paginas[0] + 1}: "${nombreReporte(p)}" (${unidades[p].cant ?? '?'})`).join('\n');
                 if (reportesSinOficio.length > 10) detalle += `\n  ... y ${reportesSinOficio.length - 10} más`;
             }
 
             const proceed = confirm(
                 `⚠️ ATENCIÓN:\n${detalle}\n\n` +
-                `El resto de oficios y reportes que SÍ coinciden se combinarán normalmente.\n` +
-                `Los oficios sin reporte se incluirán solos, y los reportes sin oficio se anexarán al final del PDF.\n\n` +
+                `El resto de oficios y planillas que SÍ coinciden se combinarán normalmente.\n\n` +
                 `¿Deseas continuar?`
             );
 
@@ -374,7 +432,7 @@ async function combinarPDFs() {
             }
         }
 
-        // 8. Intercalar: solo se combina lo que realmente coincide
+        // 7. Intercalar: solo se combina lo que realmente coincide
         messageEl.textContent = '⏳ Combinando PDFs...';
         const pdfDocResult = await PDFLib.PDFDocument.create();
 
@@ -382,31 +440,32 @@ async function combinarPDFs() {
             const [oficioPage] = await pdfDocResult.copyPages(pdfDoc1, [i]);
             pdfDocResult.addPage(oficioPage);
 
-            const reporteIdx = matches[i].reporte;
-            if (reporteIdx >= 0) {
-                const [reportePage] = await pdfDocResult.copyPages(pdfDoc2, [reporteIdx]);
-                pdfDocResult.addPage(reportePage);
+            const j = matches[i].reporte;
+            if (j >= 0) {
+                const paginas = await pdfDocResult.copyPages(pdfDoc2, unidades[j].paginas);
+                paginas.forEach(p => pdfDocResult.addPage(p));
             }
         }
 
-        // Los reportes sin oficio no se pierden: se anexan al final, sin pareja
+        // Las planillas sin oficio no se pierden: se anexan al final, sin pareja
         for (const j of reportesSinOficio) {
-            const [reportePage] = await pdfDocResult.copyPages(pdfDoc2, [j]);
-            pdfDocResult.addPage(reportePage);
+            const paginas = await pdfDocResult.copyPages(pdfDoc2, unidades[j].paginas);
+            paginas.forEach(p => pdfDocResult.addPage(p));
         }
 
-        // 9. Descargar
+        // 8. Descargar
         const resultBytes = await pdfDocResult.save();
         const blob = new Blob([resultBytes], { type: 'application/pdf' });
         downloadBlob(blob, 'PDF_Combinado.pdf');
 
         if (oficiosSinReporte.length === 0 && reportesSinOficio.length === 0) {
-            messageEl.textContent = `✅ ${totalOficios} oficios combinados con sus reportes correctamente.`;
-            messageEl.className = 'success';
+            messageEl.textContent = `✅ ${totalOficios} oficios combinados con sus planillas correctamente.`;
+            messageEl.className = cantDistinta.length ? 'warning' : 'success';
+            if (cantDistinta.length) messageEl.textContent += ` ⚠️ ${cantDistinta.length} con cantidad distinta (revisa el detalle arriba).`;
         } else {
             const partes = [];
-            if (oficiosSinReporte.length > 0) partes.push(`${oficiosSinReporte.length} oficio(s) sin reporte`);
-            if (reportesSinOficio.length > 0) partes.push(`${reportesSinOficio.length} reporte(s) sin oficio (anexados al final)`);
+            if (oficiosSinReporte.length > 0) partes.push(`${oficiosSinReporte.length} oficio(s) sin planilla`);
+            if (reportesSinOficio.length > 0) partes.push(`${reportesSinOficio.length} planilla(s) sin oficio (anexadas al final)`);
             messageEl.textContent = `⚠️ PDF combinado con advertencias: ${partes.join(', ')}. Revisa el detalle arriba.`;
             messageEl.className = 'warning';
         }
