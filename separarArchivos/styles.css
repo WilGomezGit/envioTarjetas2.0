@@ -22,7 +22,7 @@ h1 {
 }
 
 /* ==========================================
-   ENCABEZADO / TÍTULO
+   ENCABEZADO / Tï¿½TULO
    ========================================== */
 .titleContainer {
     background-color: #e0e8f0;
@@ -73,9 +73,38 @@ h1 {
     margin: 0 auto 25px auto;
     border: 1px solid #e0e0e0;
     width: 100%;
-    max-width: 600px;
+    max-width: 760px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
+
+.drop-zones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.drop-zones .drop-zone {
+    margin-bottom: 0;
+}
+
+.drop-zone.loaded {
+    border-color: #2ecc71;
+    background-color: #f1fbf5;
+}
+
+#message {
+    display: none;
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.9em;
+    font-weight: 600;
+    text-align: left;
+    line-height: 1.4;
+}
+#message.success { display: block; color: #1e7e34; background-color: #d4edda; border: 1px solid #28a745; }
+#message.warning { display: block; color: #856404; background-color: #fff3cd; border: 1px solid #ffc107; }
+#message.error   { display: block; color: #721c24; background-color: #f8d7da; border: 1px solid #dc3545; }
 
 .drop-zone {
     border: 2px dashed #3498db;
@@ -340,6 +369,11 @@ tbody tr:hover {
     .file-button-container {
         padding: 18px;
         border-radius: 10px;
+    }
+
+    .drop-zones {
+        grid-template-columns: 1fr;
+        gap: 12px;
     }
 
     .drop-zone {
