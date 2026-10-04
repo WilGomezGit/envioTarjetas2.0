@@ -604,7 +604,7 @@ async function combinarPDFs() {
                 ul(oficiosSinReporte, p => `Oficio ${p + 1}: "${esc(nombreOficio(p))}" (${oficioCants[p] ?? '?'} tarjetas)${ex ? (motivoO(p) || ' — su empresa no tiene planilla') : sugerido(p)}`) + `</li>`;
         }
         if (reportesSinOficio.length > 0) {
-            html += `<li>⚠️ Planillas sin oficio (se anexan al final): <strong>${reportesSinOficio.length}</strong>` +
+            html += `<li>⚠️ Planillas sin oficio (NO se incluyen en el PDF): <strong>${reportesSinOficio.length}</strong>` +
                 ul(reportesSinOficio, p => `Planilla pág. ${unidades[p].paginas[0] + 1}: "${esc(nombreReporte(p))}" (${unidades[p].cant ?? '?'} tarjetas)${motivoU(p)}`) + `</li>`;
         }
         if (ex) {
@@ -645,14 +645,14 @@ async function combinarPDFs() {
                 if (oficiosSinReporte.length > 10) detalle += `\n  ... y ${oficiosSinReporte.length - 10} más`;
             }
             if (reportesSinOficio.length > 0) {
-                detalle += `\n\nPlanillas SIN oficio (se anexan al final) — ${reportesSinOficio.length}:\n` +
+                detalle += `\n\nPlanillas SIN oficio (NO se incluirán en el PDF) — ${reportesSinOficio.length}:\n` +
                     reportesSinOficio.slice(0, 10).map(p => `  • Planilla pág. ${unidades[p].paginas[0] + 1}: "${nombreReporte(p)}" (${unidades[p].cant ?? '?'})`).join('\n');
                 if (reportesSinOficio.length > 10) detalle += `\n  ... y ${reportesSinOficio.length - 10} más`;
             }
 
             const proceed = confirm(
                 `⚠️ ATENCIÓN:\n${detalle}\n\n` +
-                `El resto de oficios y planillas que SÍ coinciden se combinarán normalmente.\n\n` +
+                `Los oficios y planillas que SÍ coinciden se combinarán normalmente. Las planillas sin oficio NO saldrán en el PDF final.\n\n` +
                 `¿Deseas continuar?`
             );
 
@@ -678,11 +678,7 @@ async function combinarPDFs() {
             }
         }
 
-        // Las planillas sin oficio no se pierden: se anexan al final, sin pareja
-        for (const j of reportesSinOficio) {
-            const paginas = await pdfDocResult.copyPages(pdfDoc2, unidades[j].paginas);
-            paginas.forEach(p => pdfDocResult.addPage(p));
-        }
+        // Las planillas sin oficio NO se incluyen en el PDF final; solo se avisan en pantalla
 
         // 8. Descargar
         const resultBytes = await pdfDocResult.save();
@@ -696,7 +692,7 @@ async function combinarPDFs() {
         } else {
             const partes = [];
             if (oficiosSinReporte.length > 0) partes.push(`${oficiosSinReporte.length} oficio(s) sin planilla`);
-            if (reportesSinOficio.length > 0) partes.push(`${reportesSinOficio.length} planilla(s) sin oficio (anexadas al final)`);
+            if (reportesSinOficio.length > 0) partes.push(`${reportesSinOficio.length} planilla(s) sin oficio (no incluidas en el PDF)`);
             messageEl.textContent = `⚠️ PDF combinado con advertencias: ${partes.join(', ')}. Revisa el detalle arriba.`;
             messageEl.className = 'warning';
         }
