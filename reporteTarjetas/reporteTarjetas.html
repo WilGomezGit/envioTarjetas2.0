@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reporte Planilla de Tarjetas</title>
-    <link rel="stylesheet" href="reporteStyles.css">
+    <link rel="stylesheet" href="reporteStyles.css?v=3">
 </head>
 <body>
     <div class="titleContainer">
@@ -17,8 +17,14 @@
         <div id="dropZoneExcel" class="drop-zone">
             <div class="drop-icon">📊</div>
             <span class="drop-text">Arrastra el Excel aquí</span>
-            <span class="drop-subtext">Debe contener las hojas 'Original' y 'SinDuplicados'</span>
+            <span class="drop-subtext">El Excel exportado por Separar Archivos (hoja 'Original')</span>
             <input type="file" id="fileInputExcel" class="file-input-hidden" accept=".xlsx, .xls">
+        </div>
+
+        <div class="form-group">
+            <label for="sheetEmpresas">📑 Hoja con NIT y nombre completo de las empresas (opcional):</label>
+            <input type="text" id="sheetEmpresas" placeholder="Ejemplo: SinDuplicados">
+            <small>Si lo dejas vacío se usa "SinDuplicados". Puedes poner la misma hoja de los oficios (p. ej. "Direcciones") para que el nombre de la planilla coincida con el del oficio.</small>
         </div>
 
         <!-- Selector de tipo de descarga -->
@@ -52,6 +58,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="reporteScripts.js"></script>
+    <script src="reporteScripts.js?v=3"></script>
 </body>
 </html>

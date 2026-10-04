@@ -18,12 +18,31 @@ function normalizeKey(str, fillReplacement) {
         .toUpperCase();
 }
 
+// Mapa de bytes Windows-1252 (0x80-0x9F) mal decodificados como puntos de c\u00F3digo
+// Unicode crudos (t\u00EDpico de comillas/guiones "inteligentes" de Excel/Word mal le\u00EDdos).
+// Se traducen a su car\u00E1cter real, que s\u00ED es codificable en WinAnsi (pdf-lib).
+const CP1252_MOJIBAKE_MAP = {
+    0x80: '\u20AC', 0x82: '\u201A', 0x83: '\u0192', 0x84: '\u201E',
+    0x85: '\u2026', 0x86: '\u2020', 0x87: '\u2021', 0x88: '\u02C6',
+    0x89: '\u2030', 0x8A: '\u0160', 0x8B: '\u2039', 0x8C: '\u0152',
+    0x8E: '\u017D', 0x91: '\u2018', 0x92: '\u2019', 0x93: '\u201C',
+    0x94: '\u201D', 0x95: '\u2022', 0x96: '\u2013', 0x97: '\u2014',
+    0x98: '\u02DC', 0x99: '\u2122', 0x9A: '\u0161', 0x9B: '\u203A',
+    0x9C: '\u0153', 0x9E: '\u017E', 0x9F: '\u0178'
+};
+// Caracteres WinAnsi codificables fuera de ASCII/Latin-1, tras el mapeo anterior.
+const WINANSI_EXTRA_SAFE = new Set(Object.values(CP1252_MOJIBAKE_MAP));
+
 function sanitizeForPDF(str) {
     if (!str) return '';
     return String(str)
         .replace(/\uFFFD/g, '')
         .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
-        .replace(/\u00A0/g, ' ');
+        .replace(/[\u0080-\u009F]/g, ch => CP1252_MOJIBAKE_MAP[ch.charCodeAt(0)] || '')
+        .replace(/\u00A0/g, ' ')
+        // \u00DAltimo filtro de seguridad: elimina cualquier car\u00E1cter que WinAnsi no pueda
+        // codificar (fuera de ASCII imprimible, Latin-1 y los s\u00EDmbolos ya traducidos).
+        .replace(/[^\x20-\x7E\u00A0-\u00FF]/g, ch => WINANSI_EXTRA_SAFE.has(ch) ? ch : '');
 }
 
 function sanitizeForFilename(str) {
@@ -35,97 +54,6 @@ function sanitizeForFilename(str) {
         .replace(/\s+/g, ' ')
         .trim()
         .substring(0, 80);
-}
-
-function levenshtein(a, b) {
-    if (a === b) return 0;
-    if (!a.length) return b.length;
-    if (!b.length) return a.length;
-    let prev = [], curr = [];
-    for (let j = 0; j <= a.length; j++) prev[j] = j;
-    for (let i = 1; i <= b.length; i++) {
-        curr[0] = i;
-        for (let j = 1; j <= a.length; j++) {
-            if (b.charAt(i - 1) === a.charAt(j - 1)) curr[j] = prev[j - 1];
-            else curr[j] = Math.min(prev[j - 1] + 1, curr[j - 1] + 1, prev[j] + 1);
-        }
-        [prev, curr] = [curr, prev];
-    }
-    return prev[a.length];
-}
-
-function similarity(a, b) {
-    if (!a || !b) return 0;
-    return 1 - levenshtein(a, b) / Math.max(a.length, b.length);
-}
-
-// ==========================================
-// MATCH INTELIGENTE DE EMPRESAS
-// ==========================================
-function findMatchingWorkers(empresaNombre, mapaTrabajadores) {
-    const keys = Object.keys(mapaTrabajadores);
-    if (!keys.length) return [];
-
-    const variants = [
-        normalizeKey(empresaNombre, true),
-        normalizeKey(empresaNombre, false)
-    ].filter((v, i, a) => v && a.indexOf(v) === i);
-
-    // --- 1. MATCH EXACTO ---
-    for (const v of variants) {
-        if (mapaTrabajadores[v]) return mapaTrabajadores[v];
-    }
-
-    // --- 2. MATCH POR PREFIJO DIRECTO ---
-    const MIN_LEN_PREFIX = 15;
-    for (const v of variants) {
-        for (const key of keys) {
-            if (key.length < MIN_LEN_PREFIX || v.length < MIN_LEN_PREFIX) continue;
-            const shorter = v.length < key.length ? v : key;
-            const longer  = v.length < key.length ? key : v;
-            if (longer.startsWith(shorter)) {
-                return mapaTrabajadores[key];
-            }
-        }
-    }
-
-    // --- 3. MATCH POR PREFIJO CON SIMILITUD ---
-    const PREFIX_LEN = 30;
-    const MIN_SCORE_PREFIX = 0.90;
-    let bestPrefixKey = null, bestPrefixScore = 0;
-
-    for (const v of variants) {
-        const vPrefix = v.substring(0, PREFIX_LEN);
-        if (vPrefix.length < 15) continue;
-        for (const key of keys) {
-            const keyPrefix = key.substring(0, PREFIX_LEN);
-            if (keyPrefix.length < 15) continue;
-            const score = similarity(vPrefix, keyPrefix);
-            if (score > bestPrefixScore) {
-                bestPrefixScore = score;
-                bestPrefixKey = key;
-            }
-        }
-    }
-    if (bestPrefixKey && bestPrefixScore >= MIN_SCORE_PREFIX) {
-        return mapaTrabajadores[bestPrefixKey];
-    }
-
-    // --- 4. MATCH POR SIMILITUD GLOBAL ---
-    let bestKey = null, bestScore = 0;
-    const MIN_SCORE = 0.85;
-    for (const key of keys) {
-        if (key.length < 10) continue;
-        for (const v of variants) {
-            const lenDiff = Math.abs(v.length - key.length) / Math.max(v.length, key.length);
-            if (lenDiff > 0.35) continue;
-            const score = similarity(v, key);
-            if (score > bestScore) { bestScore = score; bestKey = key; }
-        }
-    }
-    if (bestKey && bestScore >= MIN_SCORE) return mapaTrabajadores[bestKey];
-
-    return [];
 }
 
 function downloadBlob(blob, filename) {
@@ -191,7 +119,7 @@ function updateDropZoneUI(fileName) {
 function resetDropZoneUI() {
     const dz = document.getElementById('dropZoneExcel');
     dz.querySelector('.drop-text').textContent = 'Arrastra el Excel aquí';
-    dz.querySelector('.drop-subtext').textContent = "Debe contener 2 hojas: la primera con trabajadores y la segunda con empresas";
+    dz.querySelector('.drop-subtext').textContent = "El Excel exportado por Separar Archivos (hoja 'Original')";
 }
 
 // ==========================================
@@ -313,10 +241,13 @@ function dibujarPlanilla(pdfDoc, helvetica, helveticaBold, empresaData, trabajad
 
     page.drawText(`Total Tarjetas de la Empresa: ${cant}`, { x: 40, y, size: 9, font: helvetica, color: black });
     y -= 22;
-    page.drawText('Nit:', { x: 40, y, size: 9, font: helveticaBold, color: black });
-    page.drawText(nit, { x: 70, y, size: 9, font: helvetica, color: black });
-    page.drawText('Empresa:', { x: 165, y, size: 9, font: helveticaBold, color: black });
-    page.drawText(nombre, { x: 230, y, size: 9, font: helvetica, color: black });
+    if (nit) {
+        page.drawText('Nit:', { x: 40, y, size: 9, font: helveticaBold, color: black });
+        page.drawText(nit, { x: 70, y, size: 9, font: helvetica, color: black });
+    }
+    const empresaX = nit ? 165 : 40;
+    page.drawText('Empresa:', { x: empresaX, y, size: 9, font: helveticaBold, color: black });
+    page.drawText(nombre, { x: empresaX + 65, y, size: 9, font: helvetica, color: black });
     y -= 25;
 
     const cap1 = Math.min(firstPageCap, trabajadores.length);
@@ -372,6 +303,52 @@ function readExcelWorkbook(file) {
 }
 
 // ==========================================
+// VINCULAR EMPRESAS DE "ORIGINAL" CON LA HOJA DE EMPRESAS
+// ==========================================
+// El CB corta el nombre de la empresa a 40 caracteres, así que en "Original" puede venir
+// truncado ("ASOCIACION DE AUTORIDADES ANCESTRALES TE") y en la hoja de empresas completo
+// ("... TERRITORIALES NASA CXHACXHA"). Nunca se adivina por posición:
+//   1) nombre idéntico (sin importar tildes/mayúsculas/signos), o
+//   2) el nombre truncado es el comienzo del completo, y la CANT de la hoja (si la trae)
+//      coincide con los trabajadores; solo se acepta si la pareja es única en ambos lados.
+// Lo que no se pueda vincular con certeza queda sin vincular para que se revise.
+function vincularEmpresas(grupos, filas) {
+    const norm = s => normalizeKey(s, true);
+    const gk = grupos.map(g => norm(g.nombre));
+    const fk = filas.map(f => norm(f.nombre));
+    const vinculo = new Array(grupos.length).fill(-1);
+    const filaUsada = new Array(filas.length).fill(false);
+    const porPrefijo = new Set();
+    const cantOk = (g, f) => !(f.cant > 0) || f.cant === g.cant;
+
+    // 1) Nombre idéntico
+    grupos.forEach((g, i) => {
+        const cands = filas.map((f, j) => j).filter(j => !filaUsada[j] && fk[j] === gk[i]);
+        const j = cands.find(j => cantOk(g, filas[j])) ?? cands[0];
+        if (j !== undefined) { vinculo[i] = j; filaUsada[j] = true; }
+    });
+
+    // 2) Nombre truncado (prefijo) + cantidad, solo si la pareja es única
+    const MIN_PREFIJO = 12;
+    const pares = [];
+    grupos.forEach((g, i) => {
+        if (vinculo[i] >= 0) return;
+        filas.forEach((f, j) => {
+            if (filaUsada[j] || !cantOk(g, f)) return;
+            const corto = gk[i].length < fk[j].length ? gk[i] : fk[j];
+            const largo = gk[i].length < fk[j].length ? fk[j] : gk[i];
+            if (corto.length >= MIN_PREFIJO && largo.startsWith(corto)) pares.push([i, j]);
+        });
+    });
+    pares.forEach(([i, j]) => {
+        const grado = pares.filter(([a, b]) => a === i || b === j).length;
+        if (grado === 1) { vinculo[i] = j; filaUsada[j] = true; porPrefijo.add(i); }
+    });
+
+    return { vinculo, filaUsada, porPrefijo };
+}
+
+// ==========================================
 // GENERAR REPORTES (ZIP o PDF ÚNICO)
 // ==========================================
 async function generarReportesPDF() {
@@ -381,8 +358,7 @@ async function generarReportesPDF() {
         return;
     }
 
-    const outputType = getSelectedOutputType();
-    const isSingle = (outputType === 'single');
+    const isSingle = (getSelectedOutputType() === 'single');
     const messageEl = document.getElementById('message');
     messageEl.textContent = '⏳ Procesando... Por favor espera.';
     messageEl.className = 'loading';
@@ -390,125 +366,123 @@ async function generarReportesPDF() {
     try {
         const workbook = await readExcelWorkbook(excelFile);
         const nombresHojas = workbook.SheetNames;
-
         console.log('📚 Hojas encontradas en el Excel:', nombresHojas);
 
-        if (nombresHojas.length < 2) {
-            const mensaje = `❌ El archivo Excel debe contener al menos 2 hojas.<br><br>` +
-                            `<strong>Hojas encontradas:</strong> ${nombresHojas.length}<br>` +
-                            nombresHojas.map((n, i) => `${i + 1}. ${n}`).join('<br>') +
-                            `<br><br><em>La <b>primera hoja</b> debe contener los trabajadores y la <b>segunda hoja</b> las empresas.</em>`;
-            messageEl.innerHTML = mensaje;
-            messageEl.className = 'error';
-            alert('❌ El archivo Excel debe tener al menos 2 hojas.');
-            return;
-        }
+        // ============ HOJA ORIGINAL (TRABAJADORES) ============
+        // La que exporta "Separar Archivos": No | DOCUMENTO | TARJETA | APELLIDOS Y NOMBRES | EMPRESA | CANT
+        const nombreHojaOriginal = nombresHojas.includes('Original') ? 'Original' : nombresHojas[0];
+        console.log(`📋 Hoja de trabajadores: ${nombreHojaOriginal}`);
+        const dataOriginal = XLSX.utils.sheet_to_json(workbook.Sheets[nombreHojaOriginal], { header: 1 });
 
-        const nombreHojaOriginal = nombresHojas[0];
-        const nombreHojaSinDup = nombresHojas[1];
-
-        console.log(`📋 Usando como "Original" (trabajadores): ${nombreHojaOriginal}`);
-        console.log(`📋 Usando como "SinDuplicados" (empresas): ${nombreHojaSinDup}`);
-
-        const sheetOriginal = workbook.Sheets[nombreHojaOriginal];
-        const sheetSinDuplicados = workbook.Sheets[nombreHojaSinDup];
-
-        const dataOriginal = XLSX.utils.sheet_to_json(sheetOriginal, { header: 1 });
-        const dataSinDuplicados = XLSX.utils.sheet_to_json(sheetSinDuplicados, { header: 1 });
-
-        // ============ DETECCIÓN DINÁMICA DE COLUMNAS ============
-        const headersOriginal = dataOriginal[0] || [];
-        const colsOriginal = detectarColumnas(headersOriginal, {
-            cedula:   ['DOCUMENTO', 'CEDULA', 'CEDULA TRABAJADOR'],
-            nombre:   ['NOMBRE TRABAJADOR', 'APELLIDOS Y NOMBRES', 'NOMBRE', 'APELLIDOS'],
-            tarjeta:  ['TARJETA', 'NO TARJETA', 'NUMERO TARJETA'],
-            empresa:  ['EMPRESA', 'RAZON SOCIAL', 'RAZÓN SOCIAL'],
-            cant:     ['CANT', 'CANTIDAD']
+        const colsOriginal = detectarColumnas(dataOriginal[0] || [], {
+            cedula:  ['DOCUMENTO', 'CEDULA', 'CEDULA TRABAJADOR'],
+            nombre:  ['APELLIDOS Y NOMBRES', 'NOMBRE TRABAJADOR', 'NOMBRE', 'APELLIDOS'],
+            tarjeta: ['TARJETA', 'NO TARJETA', 'NUMERO TARJETA'],
+            empresa: ['EMPRESA', 'RAZON SOCIAL', 'RAZÓN SOCIAL']
         });
+        console.log('📋 Columnas detectadas:', colsOriginal);
 
-        const headersSinDup = dataSinDuplicados[0] || [];
-        const colsSinDup = detectarColumnas(headersSinDup, {
-            nit:    ['NIT'],
-            nombre: ['EMPRESA', 'RAZON SOCIAL', 'RAZÓN SOCIAL'],
-            cant:   ['CANT', 'CANTIDAD', 'TOTAL']
-        });
-
-        console.log('📋 Columnas detectadas en hoja 1 (trabajadores):', colsOriginal);
-        console.log('📋 Columnas detectadas en hoja 2 (empresas):', colsSinDup);
-
-        // ============ VALIDACIONES OBLIGATORIAS ============
         const erroresColumnas = [];
-
-        if (colsOriginal.cedula === undefined) {
-            erroresColumnas.push("• Falta la columna <b>Documento</b> en la primera hoja");
-        }
-        if (colsOriginal.nombre === undefined) {
-            erroresColumnas.push("• Falta la columna <b>Nombre Trabajador</b> en la primera hoja");
-        }
-        if (colsOriginal.tarjeta === undefined) {
-            erroresColumnas.push("• Falta la columna <b>TARJETA</b> en la primera hoja");
-        }
-        if (colsOriginal.empresa === undefined) {
-            erroresColumnas.push("• Falta la columna <b>EMPRESA</b> en la primera hoja");
-        }
-        if (colsSinDup.nit === undefined) {
-            erroresColumnas.push("• Falta la columna <b>NIT</b> en la segunda hoja");
-        }
-        if (colsSinDup.nombre === undefined) {
-            erroresColumnas.push("• Falta la columna <b>EMPRESA</b> en la segunda hoja");
-        }
-        if (colsSinDup.cant === undefined) {
-            erroresColumnas.push("• Falta la columna <b>CANT</b> en la segunda hoja");
-        }
+        if (colsOriginal.cedula === undefined)  erroresColumnas.push("• Falta la columna <b>DOCUMENTO</b>");
+        if (colsOriginal.tarjeta === undefined) erroresColumnas.push("• Falta la columna <b>TARJETA</b>");
+        if (colsOriginal.nombre === undefined)  erroresColumnas.push("• Falta la columna <b>APELLIDOS Y NOMBRES</b>");
+        if (colsOriginal.empresa === undefined) erroresColumnas.push("• Falta la columna <b>EMPRESA</b>");
 
         if (erroresColumnas.length > 0) {
-            const mensaje = `❌ El archivo Excel no tiene el formato correcto.<br><br>` +
-                            `<strong>Columnas faltantes:</strong><br>` +
-                            erroresColumnas.join('<br>') +
-                            `<br><br><em>Recuerda: la primera hoja debe tener trabajadores y la segunda debe tener empresas.</em>`;
-            messageEl.innerHTML = mensaje;
+            messageEl.innerHTML = `❌ El archivo Excel no tiene el formato correcto.<br><br>` +
+                `<strong>Columnas faltantes en la hoja "${nombreHojaOriginal}":</strong><br>` +
+                erroresColumnas.join('<br>') +
+                `<br><br><em>Usa el Excel que exporta <b>Separar Archivos</b>.</em>`;
             messageEl.className = 'error';
             alert('❌ El archivo Excel no tiene el formato correcto. Revisa el mensaje en pantalla.');
             return;
         }
 
-        // ============ EMPRESAS (SEGUNDA HOJA) ============
-        const empresasInfo = [];
-        dataSinDuplicados.slice(1).forEach(row => {
-            if (!row || row.length < 3) return;
-            const nit = sanitizeForPDF(row[colsSinDup.nit]);
-            const nombre = sanitizeForPDF(row[colsSinDup.nombre]);
-            const cant = parseInt(row[colsSinDup.cant]) || 0;
-            if (nombre) {
-                empresasInfo.push({ nit, nombre, cant });
-            }
-        });
-
-        // ============ TRABAJADORES (PRIMERA HOJA) ============
-        const trabajadoresPorEmpresa = {};
+        // ============ TRABAJADORES AGRUPADOS POR EMPRESA ============
+        // Cada empresa es una planilla; el total de tarjetas es la cantidad de trabajadores agrupados.
+        const trabajadoresPorEmpresa = new Map();
+        let filasSinEmpresa = 0;
         dataOriginal.slice(1).forEach(row => {
             if (!row || row.length < 3) return;
-            const rawEmpresa = sanitizeForPDF(row[colsOriginal.empresa]);
-            if (!rawEmpresa) return;
-
-            const keys = [
-                normalizeKey(rawEmpresa, true),
-                normalizeKey(rawEmpresa, false)
-            ].filter((v, i, a) => v && a.indexOf(v) === i);
-
-            keys.forEach(key => {
-                if (!trabajadoresPorEmpresa[key]) trabajadoresPorEmpresa[key] = [];
-                trabajadoresPorEmpresa[key].push({
-                    cedula: sanitizeForPDF(row[colsOriginal.cedula]),
-                    nombre: sanitizeForPDF(row[colsOriginal.nombre]),
-                    tarjeta: sanitizeForPDF(row[colsOriginal.tarjeta])
-                });
+            const empresa = sanitizeForPDF(row[colsOriginal.empresa]).trim();
+            if (!empresa) { filasSinEmpresa++; return; }
+            if (!trabajadoresPorEmpresa.has(empresa)) trabajadoresPorEmpresa.set(empresa, []);
+            trabajadoresPorEmpresa.get(empresa).push({
+                cedula: sanitizeForPDF(row[colsOriginal.cedula]),
+                nombre: sanitizeForPDF(row[colsOriginal.nombre]),
+                tarjeta: sanitizeForPDF(row[colsOriginal.tarjeta])
             });
         });
 
+        // ============ HOJA DE EMPRESAS (NIT y nombre completo) ============
+        // Opcional. Aporta el NIT y el nombre completo de la empresa (el mismo que usan los oficios).
+        const nombreHojaEmpresas = (document.getElementById('sheetEmpresas').value || '').trim() || 'SinDuplicados';
+        const filasEmpresas = [];
+        let hayColumnaNit = false;
+        let hojaEmpresasNoExiste = false;
+        const sheetEmpresas = nombreHojaEmpresas !== nombreHojaOriginal ? workbook.Sheets[nombreHojaEmpresas] : null;
+        if (!sheetEmpresas) {
+            hojaEmpresasNoExiste = true;
+        } else {
+            const dataEmp = XLSX.utils.sheet_to_json(sheetEmpresas, { header: 1 });
+            const colsEmp = detectarColumnas(dataEmp[0] || [], {
+                nit:    ['NIT'],
+                nombre: ['EMPRESA', 'RAZON SOCIAL', 'RAZÓN SOCIAL'],
+                cant:   ['CANT', 'CANTIDAD']
+            });
+            if (colsEmp.nombre === undefined) {
+                hojaEmpresasNoExiste = true;
+            } else {
+                hayColumnaNit = colsEmp.nit !== undefined;
+                dataEmp.slice(1).forEach(row => {
+                    if (!row) return;
+                    const nombre = sanitizeForPDF(row[colsEmp.nombre]).trim();
+                    if (!nombre) return;
+                    filasEmpresas.push({
+                        nombre,
+                        nit: hayColumnaNit ? sanitizeForPDF(row[colsEmp.nit]).trim() : '',
+                        cant: colsEmp.cant !== undefined ? (parseInt(row[colsEmp.cant]) || 0) : 0
+                    });
+                });
+            }
+        }
+        console.log(hojaEmpresasNoExiste
+            ? `📋 Sin hoja de empresas ("${nombreHojaEmpresas}"): las planillas salen con el nombre de "Original" y sin NIT`
+            : `📋 Empresas (NIT y nombre completo) tomadas de la hoja "${nombreHojaEmpresas}": ${filasEmpresas.length}`);
+
+        // Vincula cada empresa de "Original" (nombre posiblemente truncado por el CB) con su fila
+        const grupos = Array.from(trabajadoresPorEmpresa, ([nombre, t]) => ({ nombre, cant: t.length }));
+        const { vinculo, filaUsada, porPrefijo } = vincularEmpresas(grupos, filasEmpresas);
+        const empresasInfo = grupos.map((g, i) => {
+            const f = vinculo[i] >= 0 ? filasEmpresas[vinculo[i]] : null;
+            return {
+                nit: f ? f.nit : '',
+                nombre: f ? f.nombre : g.nombre,
+                nombreOriginal: g.nombre,
+                cant: g.cant,
+                cantHoja: f ? f.cant : 0,
+                vinculada: Boolean(f)
+            };
+        });
+        if (porPrefijo.size) {
+            console.log(`🔗 ${porPrefijo.size} empresa(s) vinculadas por nombre truncado + cantidad:`);
+            porPrefijo.forEach(i => console.log(`   "${grupos[i].nombre}" → "${empresasInfo[i].nombre}"`));
+        }
+
         // ============ GENERACIÓN DE PDFs ============
         const totalEmpresas = empresasInfo.length;
-        const empresasSinMatch = [];
+        if (totalEmpresas === 0) {
+            messageEl.textContent = '❌ No se encontraron trabajadores con empresa en la hoja "' + nombreHojaOriginal + '".';
+            messageEl.className = 'error';
+            return;
+        }
+
+        const empresasSinNit = empresasInfo.filter(e => !e.nit).map(e => e.nombre);
+        const hayHojaEmpresas = !hojaEmpresasNoExiste;
+        const sinVincular = hayHojaEmpresas ? empresasInfo.filter(e => !e.vinculada) : [];
+        const cantDistinta = empresasInfo.filter(e => e.vinculada && e.cantHoja > 0 && e.cantHoja !== e.cant);
+        const filasSinTrabajadores = hayHojaEmpresas ? filasEmpresas.filter((f, j) => !filaUsada[j]) : [];
+        const empresasFallidas = [];
         const zip = new JSZip();
 
         let masterPdf = null;
@@ -525,9 +499,8 @@ async function generarReportesPDF() {
         let consecutivoArchivo = 1;
 
         for (const empresaData of empresasInfo) {
-            const { nombre, cant } = empresaData;
-            const trabajadores = findMatchingWorkers(nombre, trabajadoresPorEmpresa);
-            if (trabajadores.length === 0) empresasSinMatch.push({ nombre, cant });
+            const { nombre } = empresaData;
+            const trabajadores = trabajadoresPorEmpresa.get(empresaData.nombreOriginal);
 
             messageEl.textContent = `⏳ Generando planilla ${consecutivoArchivo} de ${totalEmpresas}: ${nombre.substring(0, 40)}`;
 
@@ -547,42 +520,82 @@ async function generarReportesPDF() {
                 }
             } catch (errEmpresa) {
                 console.error(`❌ Error procesando empresa "${nombre}":`, errEmpresa);
+                empresasFallidas.push(nombre);
             }
 
             consecutivoArchivo++;
         }
 
         // ============ DESCARGA ============
+        const generadas = totalEmpresas - empresasFallidas.length;
         if (isSingle) {
             messageEl.textContent = '⏳ Guardando PDF único...';
             const mergedBytes = await masterPdf.save();
             const blob = new Blob([mergedBytes], { type: 'application/pdf' });
             downloadBlob(blob, 'Reportes_Planillas_Tarjetas_Completo.pdf');
-            messageEl.textContent = `✅ Se generó 1 PDF con ${totalEmpresas} planillas (${totalPaginasMaster} páginas) exitosamente.`;
+            messageEl.textContent = `✅ Se generó 1 PDF con ${generadas} planillas (${totalPaginasMaster} páginas) exitosamente.`;
         } else {
             messageEl.textContent = '⏳ Comprimiendo archivos...';
             const zipBlob = await zip.generateAsync({ type: 'blob' });
             downloadBlob(zipBlob, 'Reportes_Planillas_Tarjetas.zip');
-            messageEl.textContent = `✅ Se generaron ${totalEmpresas} planillas (ZIP) exitosamente.`;
+            messageEl.textContent = `✅ Se generaron ${generadas} planillas (ZIP) exitosamente.`;
         }
-
         messageEl.className = 'success';
 
         console.log('═══════════════════════════════════════════');
-        console.log(`✅ Empresas generadas: ${totalEmpresas}`);
-        console.log(`⚠️ Empresas SIN match: ${empresasSinMatch.length}`);
-        if (empresasSinMatch.length > 0) {
-            empresasSinMatch.forEach(e => console.log(`  • ${e.nombre} (esperados: ${e.cant})`));
-        }
+        console.log(`✅ Planillas generadas: ${generadas} de ${totalEmpresas}`);
+        if (empresasFallidas.length) console.log('❌ Fallidas:', empresasFallidas);
+        if (empresasSinNit.length) console.log(`⚠️ Empresas sin NIT: ${empresasSinNit.length}`);
+        if (sinVincular.length) console.log(`⚠️ Empresas sin vincular: ${sinVincular.length}`);
+        if (filasSinEmpresa) console.log(`⚠️ Filas sin empresa (omitidas): ${filasSinEmpresa}`);
         console.log('═══════════════════════════════════════════');
 
-        let alertMsg = `¡Reportes generados! ${isSingle ? `PDF único con ${totalEmpresas} planillas` : `ZIP con ${totalEmpresas} planillas`}.`;
-        if (empresasSinMatch.length > 0) {
-            alertMsg += `\n\n⚠️ ${empresasSinMatch.length} empresa(s) sin trabajadores encontrados (revisa la consola F12):\n` +
-                        empresasSinMatch.slice(0, 5).map(e => `• ${e.nombre}`).join('\n') +
-                        (empresasSinMatch.length > 5 ? `\n... y ${empresasSinMatch.length - 5} más` : '');
+        // ============ AVISOS ============
+        const avisos = [];
+        if (empresasFallidas.length) {
+            messageEl.className = 'error';
+            messageEl.textContent += ` ❌ ${empresasFallidas.length} planilla(s) fallaron (ver consola F12).`;
+            avisos.push(`❌ ${empresasFallidas.length} planilla(s) NO se pudieron generar:\n` +
+                empresasFallidas.slice(0, 5).map(n => `• ${n}`).join('\n') +
+                (empresasFallidas.length > 5 ? `\n... y ${empresasFallidas.length - 5} más` : ''));
         }
-        alert(alertMsg);
+        const lista = (items, fmt) =>
+            items.slice(0, 5).map(i => `• ${fmt(i)}`).join('\n') +
+            (items.length > 5 ? `\n... y ${items.length - 5} más (ver consola F12)` : '');
+        if (hojaEmpresasNoExiste) {
+            avisos.push(`⚠️ No encontré la hoja de empresas "${nombreHojaEmpresas}" con columna EMPRESA ` +
+                `(hojas del Excel: ${nombresHojas.join(', ')}). Las planillas se generaron con el nombre de "Original" y sin NIT.`);
+        } else {
+            if (sinVincular.length) {
+                console.warn('Empresas de Original sin vincular con la hoja de empresas:', sinVincular);
+                avisos.push(`⚠️ ${sinVincular.length} empresa(s) de "Original" NO se pudieron vincular con la hoja "${nombreHojaEmpresas}" ` +
+                    `(salen con el nombre del CB y sin NIT; revisa que el nombre empiece igual y la CANT coincida):\n` +
+                    lista(sinVincular, e => `${e.nombre} (${e.cant} tarjeta/s)`));
+            }
+            if (filasSinTrabajadores.length) {
+                console.warn('Filas de la hoja de empresas sin trabajadores en Original:', filasSinTrabajadores);
+                avisos.push(`⚠️ ${filasSinTrabajadores.length} fila(s) de "${nombreHojaEmpresas}" no tienen trabajadores en "Original" (no generan planilla):\n` +
+                    lista(filasSinTrabajadores, f => f.nombre));
+            }
+            if (cantDistinta.length) {
+                avisos.push(`⚠️ ${cantDistinta.length} empresa(s) con CANT distinta entre la hoja "${nombreHojaEmpresas}" y "Original" (la planilla usa los trabajadores de Original):\n` +
+                    lista(cantDistinta, e => `${e.nombre}: hoja ${e.cantHoja} vs Original ${e.cant}`));
+            }
+            if (!hayColumnaNit) {
+                avisos.push(`⚠️ La hoja "${nombreHojaEmpresas}" no tiene columna NIT: las planillas se generaron sin NIT.`);
+            } else {
+                const sinNitVinculadas = empresasInfo.filter(e => e.vinculada && !e.nit);
+                if (sinNitVinculadas.length) {
+                    avisos.push(`⚠️ ${sinNitVinculadas.length} empresa(s) sin NIT en la hoja:\n` + lista(sinNitVinculadas, e => e.nombre));
+                }
+            }
+        }
+        if (filasSinEmpresa) {
+            avisos.push(`⚠️ ${filasSinEmpresa} fila(s) sin empresa fueron omitidas.`);
+        }
+
+        alert(`¡Reportes generados! ${isSingle ? `PDF único con ${generadas} planillas` : `ZIP con ${generadas} planillas`}.` +
+              (avisos.length ? '\n\n' + avisos.join('\n\n') : ''));
 
     } catch (error) {
         console.error(error);

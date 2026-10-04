@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Combinar PDFs</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=2">
 </head>
 <body>
     <div class="titleContainer">
         <button class="home-button" onclick="location.href='../index.html'"> Inicio </button>
         <h1>Combinar PDFs</h1>
-        <p class="subtitle">Detecta el orden y empareja cada oficio con su reporte</p>
+        <p class="subtitle">Empareja cada oficio con su planilla (con base en el Excel)</p>
     </div>
 
     <div class="file-button-container">
@@ -34,6 +34,20 @@
             </div>
         </div>
 
+        <div class="drop-zone-wrapper">
+            <label class="file-label">📊 Excel de las empresas (recomendado)</label>
+            <div id="dropZone3" class="drop-zone">
+                <div class="drop-icon">📊</div>
+                <span class="drop-text">Arrastra el Excel aquí</span>
+                <span class="drop-subtext">Con él se empareja cada oficio con su planilla sin errores</span>
+                <input type="file" id="excelFile" class="file-input-hidden" accept=".xlsx,.xls">
+            </div>
+            <div class="sheet-row">
+                <label for="sheetExcel">📑 Hoja con las empresas de los oficios:</label>
+                <input type="text" id="sheetExcel" placeholder="Ejemplo: Direcciones">
+            </div>
+        </div>
+
         <div class="button-container">
             <button class="action-button" onclick="combinarPDFs()">Combinar</button>
             <button class="action-button cancel-button" onclick="clearInputs()">Cancelar</button>
@@ -51,6 +65,7 @@
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
-    <script src="scripts.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.2/xlsx.full.min.js"></script>
+    <script src="scripts.js?v=4"></script>
 </body>
 </html>
