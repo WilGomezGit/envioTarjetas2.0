@@ -593,7 +593,7 @@ function limpiar() {
     document.getElementById('fileInput').value = '';
     document.getElementById('signatureInput').value = '';
     document.getElementById('elaboradoPor').value = '';
-    document.getElementById('sheetName').value = 'Direcciones';
+    document.getElementById('sheetName').value = '';
     document.getElementById('firmanteNombre').value = 'Harold Yela Figuero';
     document.getElementById('firmanteCargo').value = 'Auxiliar de Tesorería';
     resetDropZoneUI();
