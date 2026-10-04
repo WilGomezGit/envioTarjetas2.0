@@ -1,110 +1,137 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generar Oficios</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div class="titleContainer">
-        <button class="home-button" onclick="location.href='../index.html'"> Inicio </button>
-        <h1>Generar Oficios</h1>
-        <p class="subtitle">A partir del Excel de Direcciones</p>
-    </div>
-
-    <div class="container">
-        <div style="text-align:center;">
-            <span class="info-badge">Arial 11 · Justificado · Carta · Listo para imprimir con encabezado</span>
-        </div>
-
-        <!-- Excel -->
-        <div id="dropZone" class="drop-zone">
-            <div class="drop-icon">📄</div>
-            <span class="drop-text">Arrastra el Excel aquí</span>
-            <span class="drop-subtext">Debe contener la hoja de direcciones</span>
-            <input type="file" id="fileInput" class="file-input-hidden" accept=".xlsx,.xls">
-        </div>
-
-        <div class="form-group">
-            <label for="sheetName">📑 Nombre de la hoja del Excel:</label>
-            <input type="text" id="sheetName" placeholder="Ejemplo: Direcciones">
-        </div>
-
-        <!-- Datos del firmante -->
-        <div class="section-title">✍️ Firmante</div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label for="firmanteNombre">Nombre:</label>
-                <input type="text" id="firmanteNombre" value="Wilmar Andrés Gómez">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Generar Oficios</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="../shared.css?v=1">
+    </head>
+    <body class="theme-of" data-page="of">
+        <div class="app">
+            <aside class="sidebar">
+                <a class="brand" href="../index.html">
+                    <img src="../imagen/Logo.png" alt="Comfacauca">
+                    <span class="brand-text">
+                        <span class="brand-title">Tesorería</span>
+                        <span class="brand-sub">Envío de tarjetas</span>
+                    </span>
+                </a>
+                <nav class="nav">
+                    <a class="nav-item nav-home f-cb" href="../index.html"><span class="nav-num">—</span>Inicio</a>
+                    <div class="nav-label">PROCESO</div>
+                    <a class="nav-item f-cb" href="../separarArchivos/separaArchivosCB.html"><span class="nav-num">01</span>Separar archivos CB</a>
+                    <a class="nav-item f-rep" href="../reporteTarjetas/reporteTarjetas.html"><span class="nav-num">02</span>Planilla de tarjetas</a>
+                    <a class="nav-item f-of is-active" href="../generarOficios/index.html" aria-current="page"><span class="nav-num">03</span>Generar oficios</a>
+                    <a class="nav-item f-comb" href="../unirPdf/index.html"><span class="nav-num">04</span>Combinar PDFs</a>
+                </nav>
+            </aside>
+            <div class="col">
+                <main class="main">
+                    <header class="page-head">
+                        <span class="eyebrow">PASO 03 DE 04</span>
+                        <h1>Generar Oficios</h1>
+                        <p>A partir del Excel de Direcciones</p>
+                    </header>
+                    <section class="card tool-card">
+                        <div class="pill-wrap">
+                            <span class="pill">Arial 11 · Justificado · Carta · Listo para imprimir</span>
+                        </div>
+                        <div class="of-grid">
+                            <div class="of-col">
+                                <span class="section-title">ARCHIVOS</span>
+                                <div class="field">
+                                    <span class="field-label">Excel de direcciones</span>
+                                    <div id="dropZone" class="drop-zone" data-badge="XLSX">
+                                        <span class="dz-badge">XLSX</span>
+                                        <span class="drop-text">Arrastra el Excel aquí</span>
+                                        <span class="drop-subtext">Debe contener la hoja de direcciones</span>
+                                        <input type="file" id="fileInput" class="file-input-hidden" accept=".xlsx,.xls">
+                                    </div>
+                                </div>
+                                <label class="field tight">
+                                    <span class="field-label">Nombre de la hoja</span>
+                                    <input type="text" id="sheetName" placeholder="Ejemplo: Direcciones">
+                                </label>
+                                <div class="field">
+                                    <span class="field-label">Imagen de la firma <span class="opt">(opcional)</span></span>
+                                    <div id="signatureDropZone" class="drop-zone compact" data-badge="PNG">
+                                        <span class="dz-badge">PNG</span>
+                                        <span class="dz-text">
+                                            <span class="drop-text">Arrastra la firma aquí</span>
+                                            <span class="drop-subtext">PNG con fondo transparente recomendado</span>
+                                        </span>
+                                        <input type="file" id="signatureInput" class="file-input-hidden" accept="image/png,image/jpeg">
+                                    </div>
+                                    <div id="signaturePreview" class="signature-preview"></div>
+                                </div>
+                            </div>
+                            <div class="of-col">
+                                <span class="section-title">FIRMANTE Y FORMATO</span>
+                                <div class="field-row">
+                                    <label class="field tight">
+                                        <span class="field-label">Nombre</span>
+                                        <input type="text" id="firmanteNombre" value="Wilmar Andrés Gómez">
+                                    </label>
+                                    <label class="field tight">
+                                        <span class="field-label">Cargo</span>
+                                        <input type="text" id="firmanteCargo" value="Auxiliar de Tesorería">
+                                    </label>
+                                </div>
+                                <label class="field tight">
+                                    <span class="field-label">Transcriptor</span>
+                                    <input type="text" id="elaboradoPor" placeholder="Ejemplo: Marcela Gómez">
+                                </label>
+                                <div class="field">
+                                    <span class="field-label">Formato del oficio</span>
+                                    <div class="selector-buttons selector-sm" id="formatoSelector">
+                                        <button type="button" class="selector-btn active" data-value="plantilla">
+                                            <span class="sel-title">Con plantilla</span>
+                                            <span class="btn-sub">Membrete Comfacauca</span>
+                                        </button>
+                                        <button type="button" class="selector-btn" data-value="blanco">
+                                            <span class="sel-title">Sin plantilla</span>
+                                            <span class="btn-sub">Hoja en blanco</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <span class="field-label">Tipo de descarga</span>
+                                    <div class="selector-buttons selector-sm" id="outputTypeSelector">
+                                        <button type="button" class="selector-btn active" data-value="single">
+                                            <span class="sel-title">PDF único</span>
+                                            <span class="btn-sub">Todos en un archivo</span>
+                                        </button>
+                                        <button type="button" class="selector-btn" data-value="zip">
+                                            <span class="sel-title">ZIP</span>
+                                            <span class="btn-sub">Un PDF por oficio</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="of-footer-msg">
+                            <div id="message"></div>
+                        </div>
+                        <div class="card-actions">
+                            <button type="button" class="btn btn-secondary" data-action="limpiar" onclick="limpiar()">Limpiar</button>
+                            <button type="button" class="btn btn-primary" data-action="generarOficios" data-requires="fileInput" onclick="generarOficios()" disabled>Generar oficios</button>
+                        </div>
+                    </section>
+                </main>
+                <footer class="footer">
+                    <span>Copyright © | Popayán 2024</span>
+                    <span>Tesorería Comfacauca</span>
+                    <span class="signature">Creado por: Wilmar Andrés Gómez</span>
+                </footer>
             </div>
-            <div class="form-group">
-                <label for="firmanteCargo">Cargo:</label>
-                <input type="text" id="firmanteCargo" value="Auxiliar de Tesorería">
-            </div>
         </div>
-
-        <div class="form-group">
-            <label>🖋️ Imagen de la firma (opcional):</label>
-            <div id="signatureDropZone" class="drop-zone signature-zone">
-                <div class="drop-icon">🖋️</div>
-                <span class="drop-text">Arrastra la firma aquí</span>
-                <span class="drop-subtext">PNG con fondo transparente recomendado</span>
-                <input type="file" id="signatureInput" class="file-input-hidden" accept="image/png,image/jpeg">
-            </div>
-            <div id="signaturePreview" class="signature-preview"></div>
-        </div>
-
-        <!-- Transcriptor -->
-        <div class="form-group">
-            <label for="elaboradoPor">📝 Transcriptor:</label>
-            <input type="text" id="elaboradoPor" placeholder="Ejemplo: Marcela Gómez">
-        </div>
-
-        <!-- Formato del oficio -->
-        <div class="output-selector">
-            <div class="selector-label">Formato del oficio:</div>
-            <div class="selector-buttons" id="formatoSelector">
-                <button type="button" class="selector-btn active" data-value="plantilla">
-                    🖼️ Con plantilla
-                    <span class="btn-sub">Membrete Comfacauca</span>
-                </button>
-                <button type="button" class="selector-btn" data-value="blanco">
-                    📄 Sin plantilla
-                    <span class="btn-sub">Hoja en blanco</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Tipo de descarga -->
-        <div class="output-selector">
-            <div class="selector-label">Tipo de descarga:</div>
-            <div class="selector-buttons" id="outputTypeSelector">
-                <button type="button" class="selector-btn active" data-value="single">
-                    📄 PDF único
-                    <span class="btn-sub">Todos en un archivo</span>
-                </button>
-                <button type="button" class="selector-btn" data-value="zip">
-                    📦 ZIP
-                    <span class="btn-sub">Un PDF por oficio</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="button-container">
-            <button onclick="generarOficios()" class="generate-button">Generar Oficios</button>
-            <button onclick="limpiar()" class="cancel-button">Cancelar</button>
-        </div>
-
-        <div style="text-align:center;">
-            <div id="message"></div>
-        </div>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.2/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="scripts.js?v=2"></script>
-</body>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.2/xlsx.full.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+        <script src="scripts.js?v=2"></script>
+        <script src="../shared.js?v=1"></script>
+    </body>
 </html>

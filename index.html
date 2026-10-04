@@ -1,30 +1,94 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Envio Tarjetas</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div class="container">
-        <div class="content-box">
-            <h1>Bienvenido: ¿Qué te gustaría hacer?</h1>
-            <div class="options">
-                <a href="separarArchivos/separaArchivosCB.html" class="button">Separar Archivos CB</a>
-                <a href="reporteTarjetas/reporteTarjetas.html" class="button button-reporte">Reporte Planilla de Tarjetas</a>
-                <a href="generarOficios/index.html" class="button button-oficios">Generar Oficios</a>
-                <a href="unirPdf/index.html" class="button">Combinar Archivos Pdf's</a>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Envio Tarjetas</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="shared.css?v=1">
+    </head>
+    <body class="theme-home" data-page="home">
+        <div class="app">
+            <aside class="sidebar">
+                <a class="brand" href="index.html">
+                    <img src="imagen/Logo.png" alt="Comfacauca">
+                    <span class="brand-text">
+                        <span class="brand-title">Tesorería</span>
+                        <span class="brand-sub">Envío de tarjetas</span>
+                    </span>
+                </a>
+                <nav class="nav">
+                    <a class="nav-item nav-home f-cb is-active" href="index.html" aria-current="page"><span class="nav-num">—</span>Inicio</a>
+                    <div class="nav-label">PROCESO</div>
+                    <a class="nav-item f-cb" href="separarArchivos/separaArchivosCB.html"><span class="nav-num">01</span>Separar archivos CB</a>
+                    <a class="nav-item f-rep" href="reporteTarjetas/reporteTarjetas.html"><span class="nav-num">02</span>Planilla de tarjetas</a>
+                    <a class="nav-item f-of" href="generarOficios/index.html"><span class="nav-num">03</span>Generar oficios</a>
+                    <a class="nav-item f-comb" href="unirPdf/index.html"><span class="nav-num">04</span>Combinar PDFs</a>
+                </nav>
+            </aside>
+            <div class="col">
+                <main class="main">
+                    <header class="page-head is-home">
+                        <span class="eyebrow">INICIO</span>
+                        <h1>Proceso de envío de tarjetas</h1>
+                        <p>Cuatro pasos. Cada uno produce el archivo que necesita el siguiente. Puedes saltar directo a cualquiera desde el menú.</p>
+                    </header>
+                    <div class="home-grid">
+                        <a class="home-card f-cb" href="separarArchivos/separaArchivosCB.html">
+                            <div class="home-card-top">
+                                <span class="home-num">01</span>
+                                <span class="home-io">CB + A0 → XLSX</span>
+                            </div>
+                            <div class="home-card-body">
+                                <span class="home-name">Separar Archivos CB</span>
+                                <span class="home-desc">Cruza los archivos CB y A0 y los exporta a Excel por empresa.</span>
+                            </div>
+                            <span class="home-open">Abrir →</span>
+                        </a>
+                        <a class="home-card f-rep" href="reporteTarjetas/reporteTarjetas.html">
+                            <div class="home-card-top">
+                                <span class="home-num">02</span>
+                                <span class="home-io">XLSX → PDF</span>
+                            </div>
+                            <div class="home-card-body">
+                                <span class="home-name">Reporte Planilla de Tarjetas</span>
+                                <span class="home-desc">Genera la planilla en PDF de cada empresa a partir del Excel.</span>
+                            </div>
+                            <span class="home-open">Abrir →</span>
+                        </a>
+                        <a class="home-card f-of" href="generarOficios/index.html">
+                            <div class="home-card-top">
+                                <span class="home-num">03</span>
+                                <span class="home-io">XLSX → PDF</span>
+                            </div>
+                            <div class="home-card-body">
+                                <span class="home-name">Generar Oficios</span>
+                                <span class="home-desc">Crea los oficios con membrete y firma desde el Excel de direcciones.</span>
+                            </div>
+                            <span class="home-open">Abrir →</span>
+                        </a>
+                        <a class="home-card f-comb" href="unirPdf/index.html">
+                            <div class="home-card-top">
+                                <span class="home-num">04</span>
+                                <span class="home-io">PDF + PDF → PDF</span>
+                            </div>
+                            <div class="home-card-body">
+                                <span class="home-name">Combinar PDFs</span>
+                                <span class="home-desc">Empareja cada oficio con el reporte de su empresa en un solo PDF.</span>
+                            </div>
+                            <span class="home-open">Abrir →</span>
+                        </a>
+                    </div>
+                </main>
+                <footer class="footer">
+                    <span>Copyright © | Popayán 2024</span>
+                    <span>Tesorería Comfacauca</span>
+                    <span class="signature">Creado por: Wilmar Andrés Gómez</span>
+                </footer>
             </div>
         </div>
-    </div>
 
-    <footer>
-        <div class="footer-content">
-            <p>Copyright © | Popayán 2024 </p>
-            <p>Tesorería Comfacauca</p>
-            <p class="signature">Creado por: Wilmar Andrés Gómez</p>
-        </div>
-    </footer>
-</body>
+    </body>
 </html>

@@ -1,79 +1,100 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Separador Archivos para Envios</title>
-    <link rel="stylesheet" href="styles.css?v=4">
-</head>
-<body>
-    <div class="titleContainer">
-        <button class="home-button" onclick="location.href='../index.html'"> Inicio </button>
-        <h1>Separador de Archivos CB y A0</h1>
-        <p class="subtitle">Para Envío de Tarjetas</p>
-    </div>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Separador Archivos para Envios</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="../shared.css?v=1">
+    </head>
+    <body class="theme-cb" data-page="cb">
+        <div class="app">
+            <aside class="sidebar">
+                <a class="brand" href="../index.html">
+                    <img src="../imagen/Logo.png" alt="Comfacauca">
+                    <span class="brand-text">
+                        <span class="brand-title">Tesorería</span>
+                        <span class="brand-sub">Envío de tarjetas</span>
+                    </span>
+                </a>
+                <nav class="nav">
+                    <a class="nav-item nav-home f-cb" href="../index.html"><span class="nav-num">—</span>Inicio</a>
+                    <div class="nav-label">PROCESO</div>
+                    <a class="nav-item f-cb is-active" href="../separarArchivos/separaArchivosCB.html" aria-current="page"><span class="nav-num">01</span>Separar archivos CB</a>
+                    <a class="nav-item f-rep" href="../reporteTarjetas/reporteTarjetas.html"><span class="nav-num">02</span>Planilla de tarjetas</a>
+                    <a class="nav-item f-of" href="../generarOficios/index.html"><span class="nav-num">03</span>Generar oficios</a>
+                    <a class="nav-item f-comb" href="../unirPdf/index.html"><span class="nav-num">04</span>Combinar PDFs</a>
+                </nav>
+            </aside>
+            <div class="col">
+                <main class="main">
+                    <header class="page-head">
+                        <span class="eyebrow">PASO 01 DE 04</span>
+                        <h1>Separador de Archivos CB y A0</h1>
+                        <p>Para Envío de Tarjetas</p>
+                    </header>
+                    <section class="card tool-card w-720">
+                        <div class="card-body">
+                            <div class="field">
+                                <span class="field-label">Archivos CB y A0</span>
+                                <div id="dropZone" class="drop-zone" data-badge="CB · A0">
+                                    <span class="dz-badge">CB · A0</span>
+                                    <span class="drop-text">Arrastra aquí los archivos CB y A0</span>
+                                    <span class="drop-subtext">o <span class="link">haz clic para seleccionarlos</span> (puedes elegir los dos a la vez)</span>
+                                    <input type="file" id="fileInput" class="file-input-hidden" multiple>
+                                </div>
+                                <div hidden>
+                                    <div id="statusCB">CB: pendiente</div>
+                                    <div id="statusA0">A0: pendiente</div>
+                                </div>
+                            </div>
+                            <div id="message"></div>
+                        </div>
+                        <div class="card-actions">
+                            <button type="button" class="btn btn-secondary" data-action="clearTable" onclick="clearTable()">Limpiar</button>
+                            <button type="button" class="btn btn-primary" data-action="processFile" onclick="processFile()" disabled>Procesar</button>
+                        </div>
+                    </section>
 
-    <div class="file-button-container">
-        <!-- Una sola zona para los dos archivos planos: se detectan por el nombre -->
-        <div id="dropZone" class="drop-zone">
-            <div class="drop-icon">📁</div>
-            <span class="drop-text">Arrastra aquí los archivos CB y A0</span>
-            <span class="drop-subtext">o haz clic para seleccionarlos (puedes elegir los dos a la vez)</span>
-            <input type="file" id="fileInput" class="file-input-hidden" multiple>
+                    <section class="card results-card">
+                        <div id="topActions" class="top-actions" style="display: none;">
+                            <div class="results-info">
+                                <span class="results-title">Resultado</span>
+                                <span id="resultsCount">0 registros</span>
+                            </div>
+                            <div class="top-buttons">
+                                <button id="exportButton" type="button">Exportar a Excel</button>
+                            </div>
+                        </div>
+                        <div class="table-scroll">
+                            <table id="dataTable" class="dataTable">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>DOCUMENTO</th>
+                                        <th>TARJETA</th>
+                                        <th>APELLIDOS Y NOMBRES</th>
+                                        <th>EMPRESA</th>
+                                        <th>CANT</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dataBody"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </main>
+                <footer class="footer">
+                    <span>Copyright © | Popayán 2024</span>
+                    <span>Tesorería Comfacauca</span>
+                    <span class="signature">Creado por: Wilmar Andrés Gómez</span>
+                </footer>
+            </div>
         </div>
-        <div class="file-status">
-            <div id="statusCB" class="file-chip">CB: pendiente</div>
-            <div id="statusA0" class="file-chip">A0: pendiente</div>
-        </div>
-
-        <!-- Botones de acción -->
-        <div class="button-container">
-            <button onclick="processFile()" class="action-button">Procesar</button>
-            <button onclick="clearTable()" class="action-button cancel-button">Cancelar</button>
-        </div>
-        <div id="message"></div>
-    </div>
-
-    <!-- Barra de acciones superiores (Exportar) -->
-    <div id="topActions" class="top-actions" style="display: none;">
-        <div class="results-info">
-            <span id="resultsCount">0 registros</span>
-        </div>
-        <div class="top-buttons">
-            <button id="exportButton" class="export-button">⬇️ Exportar a Excel</button>
-        </div>
-    </div>
-
-    <div class="table-container">
-        <div class="table-box">
-            <table id="dataTable" class="dataTable">
-                <thead>
-                    <tr>
-                        <th>No</th>
-                        <th>DOCUMENTO</th>
-                        <th>TARJETA</th>
-                        <th>APELLIDOS Y NOMBRES</th>
-                        <th>EMPRESA</th>
-                        <th>CANT</th>
-                    </tr>
-                </thead>
-                <tbody id="dataBody">
-                    <!-- Aquí se insertarán las filas de datos -->
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <button class="scrollButton smallButton topRight" onclick="scrollToBottom()">⬇ Ir al Final</button>
-    <button class="scrollButton smallButton bottomRight" onclick="scrollToTop()">⬆ Subir</button>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.2/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <script src="scripts.js?v=5"></script>
-
-    <script>
-        function scrollToBottom() { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }
-        function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
-    </script>
-</body>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.2/xlsx.full.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+        <script src="scripts.js?v=5"></script>
+        <script src="../shared.js?v=1"></script>
+    </body>
 </html>

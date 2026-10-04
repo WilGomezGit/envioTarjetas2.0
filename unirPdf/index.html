@@ -1,71 +1,103 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Combinar PDFs</title>
-    <link rel="stylesheet" href="styles.css?v=2">
-</head>
-<body>
-    <div class="titleContainer">
-        <button class="home-button" onclick="location.href='../index.html'"> Inicio </button>
-        <h1>Combinar PDFs</h1>
-        <p class="subtitle">Empareja cada oficio con su planilla (con base en el Excel)</p>
-    </div>
-
-    <div class="file-button-container">
-        <div class="drop-zone-wrapper">
-            <label class="file-label">📄 PDF de los Oficios</label>
-            <div id="dropZone1" class="drop-zone">
-                <div class="drop-icon">📁</div>
-                <span class="drop-text">Arrastra el PDF de los Oficios aquí</span>
-                <span class="drop-subtext">o haz clic para seleccionarlo</span>
-                <input type="file" id="pdfFile1" class="file-input-hidden" accept="application/pdf">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Combinar PDFs</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="../shared.css?v=1">
+    </head>
+    <body class="theme-comb" data-page="comb">
+        <div class="app">
+            <aside class="sidebar">
+                <a class="brand" href="../index.html">
+                    <img src="../imagen/Logo.png" alt="Comfacauca">
+                    <span class="brand-text">
+                        <span class="brand-title">Tesorería</span>
+                        <span class="brand-sub">Envío de tarjetas</span>
+                    </span>
+                </a>
+                <nav class="nav">
+                    <a class="nav-item nav-home f-cb" href="../index.html"><span class="nav-num">—</span>Inicio</a>
+                    <div class="nav-label">PROCESO</div>
+                    <a class="nav-item f-cb" href="../separarArchivos/separaArchivosCB.html"><span class="nav-num">01</span>Separar archivos CB</a>
+                    <a class="nav-item f-rep" href="../reporteTarjetas/reporteTarjetas.html"><span class="nav-num">02</span>Planilla de tarjetas</a>
+                    <a class="nav-item f-of" href="../generarOficios/index.html"><span class="nav-num">03</span>Generar oficios</a>
+                    <a class="nav-item f-comb is-active" href="../unirPdf/index.html" aria-current="page"><span class="nav-num">04</span>Combinar PDFs</a>
+                </nav>
+            </aside>
+            <div class="col">
+                <main class="main">
+                    <header class="page-head">
+                        <span class="eyebrow">PASO 04 DE 04</span>
+                        <h1>Combinar PDFs</h1>
+                        <p>Empareja cada oficio con su planilla (con base en el Excel)</p>
+                    </header>
+                    <section class="card tool-card w-880">
+                        <div class="card-body">
+                            <div class="zones-grid">
+                                <div class="field">
+                                    <span class="field-label">1 · PDF de los oficios</span>
+                                    <div id="dropZone1" class="drop-zone" data-badge="PDF">
+                                        <span class="dz-badge">PDF</span>
+                                        <span class="drop-text">Arrastra el PDF de los oficios</span>
+                                        <span class="drop-subtext">o <span class="link">haz clic para seleccionarlo</span></span>
+                                        <input type="file" id="pdfFile1" class="file-input-hidden" accept="application/pdf">
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <span class="field-label">2 · PDF de las empresas (reportes)</span>
+                                    <div id="dropZone2" class="drop-zone" data-badge="PDF">
+                                        <span class="dz-badge">PDF</span>
+                                        <span class="drop-text">Arrastra el PDF de los reportes</span>
+                                        <span class="drop-subtext">o <span class="link">haz clic para seleccionarlo</span></span>
+                                        <input type="file" id="pdfFile2" class="file-input-hidden" accept="application/pdf">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="excel-block">
+                                <div class="field">
+                                    <span class="field-label">3 · Excel de las empresas <span class="opt">(recomendado)</span></span>
+                                    <div id="dropZone3" class="drop-zone compact" data-badge="XLSX">
+                                        <span class="dz-badge">XLSX</span>
+                                        <span class="dz-text">
+                                            <span class="drop-text">Arrastra el Excel aquí</span>
+                                            <span class="drop-subtext">Con él se empareja cada oficio con su planilla sin errores</span>
+                                        </span>
+                                        <input type="file" id="excelFile" class="file-input-hidden" accept=".xlsx,.xls">
+                                    </div>
+                                </div>
+                                <label class="field tight">
+                                    <span class="field-label">Hoja con las empresas de los oficios</span>
+                                    <input type="text" id="sheetExcel" placeholder="Ejemplo: Direcciones">
+                                </label>
+                            </div>
+                            <div id="message"></div>
+                        </div>
+                        <div class="card-actions">
+                            <button type="button" class="btn btn-secondary" data-action="clearInputs" onclick="clearInputs()">Limpiar</button>
+                            <button type="button" class="btn btn-primary" data-action="combinarPDFs" data-requires="pdfFile1,pdfFile2" onclick="combinarPDFs()" disabled>Combinar</button>
+                        </div>
+                    </section>
+                    <div id="validationReport"></div>
+                </main>
+                <footer class="footer">
+                    <span>Copyright © | Popayán 2024</span>
+                    <span>Tesorería Comfacauca</span>
+                    <span class="signature">Creado por: Wilmar Andrés Gómez</span>
+                </footer>
             </div>
         </div>
-
-        <div class="drop-zone-wrapper">
-            <label class="file-label">📄 PDF de las Empresas (Reportes)</label>
-            <div id="dropZone2" class="drop-zone">
-                <div class="drop-icon">📁</div>
-                <span class="drop-text">Arrastra el PDF de los Reportes aquí</span>
-                <span class="drop-subtext">o haz clic para seleccionarlo</span>
-                <input type="file" id="pdfFile2" class="file-input-hidden" accept="application/pdf">
-            </div>
-        </div>
-
-        <div class="drop-zone-wrapper">
-            <label class="file-label">📊 Excel de las empresas (recomendado)</label>
-            <div id="dropZone3" class="drop-zone">
-                <div class="drop-icon">📊</div>
-                <span class="drop-text">Arrastra el Excel aquí</span>
-                <span class="drop-subtext">Con él se empareja cada oficio con su planilla sin errores</span>
-                <input type="file" id="excelFile" class="file-input-hidden" accept=".xlsx,.xls">
-            </div>
-            <div class="sheet-row">
-                <label for="sheetExcel">📑 Hoja con las empresas de los oficios:</label>
-                <input type="text" id="sheetExcel" placeholder="Ejemplo: Direcciones">
-            </div>
-        </div>
-
-        <div class="button-container">
-            <button class="action-button" onclick="combinarPDFs()">Combinar</button>
-            <button class="action-button cancel-button" onclick="clearInputs()">Cancelar</button>
-        </div>
-    </div>
-
-    <div class="output-container">
-        <div id="message"></div>
-        <div id="validationReport"></div>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.2/xlsx.full.min.js"></script>
-    <script src="scripts.js?v=4"></script>
-</body>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+        <script>
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.2/xlsx.full.min.js"></script>
+        <script src="scripts.js?v=4"></script>
+        <script src="../shared.js?v=1"></script>
+    </body>
 </html>
