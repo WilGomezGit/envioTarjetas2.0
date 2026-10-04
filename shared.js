@@ -11,7 +11,7 @@
 
     var page = document.body.getAttribute('data-page');
     var primary = document.querySelector('.btn-primary[data-action]');
-    var secondary = document.querySelector('.btn-secondary[data-action]');
+    var secondary = document.querySelector('.btn-danger[data-action]');
     var busy = false;
 
     function fmtSize(bytes) {
@@ -186,5 +186,47 @@
 
     refresh();
     // Red de seguridad: si algún script cambia los archivos sin disparar eventos
-    setInterval(refresh, 500);
+    if (zones.length || primary) setInterval(refresh, 500);
+
+    // ---------- Botones flotantes: subir / ir al final ----------
+    (function scrollButtons() {
+        var ARROW_UP = '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
+        var ARROW_DOWN = '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
+        var wrap = document.createElement('div');
+        wrap.className = 'scroll-fab';
+        wrap.hidden = true;
+
+        var up = document.createElement('button');
+        up.type = 'button';
+        up.className = 'fab';
+        up.setAttribute('aria-label', 'Subir al inicio de la página');
+        up.innerHTML = ARROW_UP + '<span>Subir</span>';
+        up.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+        var down = document.createElement('button');
+        down.type = 'button';
+        down.className = 'fab';
+        down.setAttribute('aria-label', 'Ir al final de la página');
+        down.innerHTML = ARROW_DOWN + '<span>Ir al final</span>';
+        down.addEventListener('click', function () {
+            window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+        });
+
+        wrap.appendChild(up);
+        wrap.appendChild(down);
+        document.body.appendChild(wrap);
+
+        // Solo aparecen si la página se puede desplazar, y cada uno solo si hay hacia dónde ir
+        function update() {
+            var max = document.documentElement.scrollHeight - window.innerHeight;
+            var y = window.scrollY || document.documentElement.scrollTop;
+            up.hidden = !(max > 120 && y > 160);
+            down.hidden = !(max > 120 && max - y > 160);
+            wrap.hidden = up.hidden && down.hidden;
+        }
+        window.addEventListener('scroll', update, { passive: true });
+        window.addEventListener('resize', update);
+        if (typeof ResizeObserver === 'function') new ResizeObserver(update).observe(document.body);
+        update();
+    })();
 })();

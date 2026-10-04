@@ -232,14 +232,14 @@ button, input { font-family: inherit; }
 }
 
 .btn { cursor: pointer; border-radius: 8px; font-size: 14px; }
-.btn-secondary {
-    border: 1px solid var(--border-input);
-    background: #fff;
-    color: var(--text);
-    font-weight: 500;
+.btn-danger {
+    border: 0;
+    background: var(--error);
+    color: #fff;
+    font-weight: 600;
     padding: 10px 18px;
 }
-.btn-secondary:hover { background: var(--hover); }
+.btn-danger:hover { filter: brightness(.9); }
 .btn-primary {
     border: 0;
     background: var(--accent);
@@ -407,6 +407,9 @@ button, input { font-family: inherit; }
 #resultsCount { font: 500 12px var(--font-mono); color: var(--text-2); }
 #topActions .top-buttons { margin-left: auto; }
 #exportButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     border: 0;
     cursor: pointer;
     padding: 9px 16px;
@@ -417,6 +420,36 @@ button, input { font-family: inherit; }
     font-weight: 600;
 }
 #exportButton:hover { filter: brightness(.9); }
+.btn-icon { flex-shrink: 0; display: block; }
+
+/* ---------- Botones flotantes: subir / ir al final ---------- */
+.scroll-fab {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.scroll-fab[hidden], .fab[hidden] { display: none; }
+.fab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 0;
+    cursor: pointer;
+    padding: 11px 16px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 10px 24px -8px var(--glow), 0 2px 4px rgba(23, 32, 27, .12);
+    transition: transform .15s, filter .15s;
+}
+.fab:hover { transform: translateY(-2px); filter: brightness(.92); }
 
 .table-scroll { overflow-x: auto; }
 .dataTable { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -530,6 +563,8 @@ button, input { font-family: inherit; }
     .card-actions { padding: 14px 18px; }
     .of-grid { padding: 16px 18px 20px; }
     .of-footer-msg { padding: 0 18px 16px; }
+    .scroll-fab { right: 12px; bottom: 12px; }
+    .fab { padding: 10px 14px; }
 }
 
 @media (max-width: 480px) {

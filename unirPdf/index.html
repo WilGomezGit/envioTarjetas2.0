@@ -7,7 +7,7 @@
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="../shared.css?v=1">
+        <link rel="stylesheet" href="../shared.css?v=2">
     </head>
     <body class="theme-comb" data-page="comb">
         <div class="app">
@@ -77,8 +77,8 @@
                             <div id="message"></div>
                         </div>
                         <div class="card-actions">
-                            <button type="button" class="btn btn-secondary" data-action="clearInputs" onclick="clearInputs()">Limpiar</button>
                             <button type="button" class="btn btn-primary" data-action="combinarPDFs" data-requires="pdfFile1,pdfFile2" onclick="combinarPDFs()" disabled>Combinar</button>
+                            <button type="button" class="btn btn-danger" data-action="clearInputs" onclick="clearInputs()">Limpiar</button>
                         </div>
                     </section>
                     <div id="validationReport"></div>
@@ -98,6 +98,6 @@
         </script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.2/xlsx.full.min.js"></script>
         <script src="scripts.js?v=4"></script>
-        <script src="../shared.js?v=1"></script>
+        <script src="../shared.js?v=2"></script>
     </body>
 </html>
