@@ -154,8 +154,9 @@ button, input { font-family: inherit; }
     content: '';
     position: absolute;
     top: 0; left: 8%; right: 8%;
-    height: 1px;
-    background: linear-gradient(90deg, rgba(23, 32, 27, 0), rgba(23, 32, 27, .16) 30%, rgba(23, 32, 27, .16) 70%, rgba(23, 32, 27, 0));
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent) 30%, var(--accent) 70%, transparent);
 }
 .footer .signature { font-style: italic; color: var(--text-2); }
 
