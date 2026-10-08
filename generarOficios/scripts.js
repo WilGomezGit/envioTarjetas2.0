@@ -519,6 +519,7 @@ async function generarOficios() {
 
         // ============ CONSTRUIR EMPRESAS ============
         const empresas = [];
+        const omitidas = [];   // filas sin dirección o con "Ventanilla" (no se envían: no se genera oficio)
         for (let i = 1; i < data.length; i++) {
             const row = data[i];
             if (!row) continue;
@@ -528,6 +529,12 @@ async function generarOficios() {
             const persona = !nitFila && Boolean(cedulaFila);   // sin NIT pero con cédula: persona
             const empresa = (persona ? (cel(cols.nombre) || cel(cols.empresa)) : (cel(cols.empresa) || cel(cols.nombre)));
             if (!empresa) continue;
+
+            // Solo se generan los oficios de quienes tienen una dirección de envío
+            if (cols.direccion !== undefined) {
+                const dir = cel(cols.direccion);
+                if (!dir || /\bventanilla\b/i.test(dir)) { omitidas.push(empresa); continue; }
+            }
 
             empresas.push({
                 no:        nitFila || cedulaFila,
@@ -541,11 +548,13 @@ async function generarOficios() {
             });
         }
 
-        console.log(`✅ Total empresas encontradas: ${empresas.length}`);
+        console.log(`✅ Total empresas encontradas: ${empresas.length}` + (omitidas.length ? ` (omitidas sin dirección o Ventanilla: ${omitidas.length})` : ''));
+        if (omitidas.length) console.log('Omitidas:', omitidas);
+        const notaOmitidas = omitidas.length ? ` ${omitidas.length} sin dirección o con "Ventanilla" no se generaron.` : '';
         console.log('📋 Ejemplo (3 primeros):', empresas.slice(0, 3));
 
         if (empresas.length === 0) {
-            alert('No se encontraron filas válidas en el Excel.');
+            alert(omitidas.length ? 'Ninguna fila tiene dirección de envío (todas están vacías o dicen "Ventanilla"): no se generó ningún oficio.' : 'No se encontraron filas válidas en el Excel.');
             messageEl.textContent = '';
             messageEl.className = '';
             return;
@@ -609,12 +618,12 @@ async function generarOficios() {
             const bytes = await masterPdf.save();
             const blob = new Blob([bytes], { type: 'application/pdf' });
             downloadBlob(blob, 'Oficios_Todos.pdf');
-            messageEl.textContent = `✅ Se generó 1 PDF con ${empresas.length} oficios.`;
+            messageEl.textContent = `✅ Se generó 1 PDF con ${empresas.length} oficios.${notaOmitidas}`;
         } else {
             messageEl.textContent = '⏳ Comprimiendo ZIP...';
             const zipBlob = await zip.generateAsBlob();
             downloadBlob(zipBlob, 'Oficios.zip');
-            messageEl.textContent = `✅ Se generaron ${empresas.length} oficios en ZIP.`;
+            messageEl.textContent = `✅ Se generaron ${empresas.length} oficios en ZIP.${notaOmitidas}`;
         }
         messageEl.className = 'success';
 
