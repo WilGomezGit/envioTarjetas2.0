@@ -181,7 +181,7 @@ function detectarColumnas(headersRow, mapaBuscado) {
 // DIBUJAR UNA PLANILLA EN UN PDF
 // ==========================================
 function dibujarPlanilla(pdfDoc, helvetica, helveticaBold, empresaData, trabajadores, empresaIdx) {
-    const { nit, nombre, cant } = empresaData;
+    const { nit, nombre, cant, persona } = empresaData;
     const W = 792, H = 612, rowH = 12, bottomReserve = 60;
     const black = PDFLib.rgb(0, 0, 0);
     const gray = PDFLib.rgb(0.5, 0.5, 0.5);
@@ -242,11 +242,11 @@ function dibujarPlanilla(pdfDoc, helvetica, helveticaBold, empresaData, trabajad
     page.drawText(`Total Tarjetas de la Empresa: ${cant}`, { x: 40, y, size: 9, font: helvetica, color: black });
     y -= 22;
     if (nit) {
-        page.drawText('Nit:', { x: 40, y, size: 9, font: helveticaBold, color: black });
+        page.drawText(persona ? 'C.C:' : 'Nit:', { x: 40, y, size: 9, font: helveticaBold, color: black });
         page.drawText(nit, { x: 70, y, size: 9, font: helvetica, color: black });
     }
     const empresaX = nit ? 165 : 40;
-    page.drawText('Empresa:', { x: empresaX, y, size: 9, font: helveticaBold, color: black });
+    page.drawText(persona ? 'Nombre:' : 'Empresa:', { x: empresaX, y, size: 9, font: helveticaBold, color: black });
     page.drawText(nombre, { x: empresaX + 65, y, size: 9, font: helvetica, color: black });
     y -= 25;
 
@@ -426,21 +426,26 @@ async function generarReportesPDF() {
         } else {
             const dataEmp = XLSX.utils.sheet_to_json(sheetEmpresas, { header: 1 });
             const colsEmp = detectarColumnas(dataEmp[0] || [], {
-                nit:    ['NIT'],
-                nombre: ['EMPRESA', 'RAZON SOCIAL', 'RAZÓN SOCIAL'],
-                cant:   ['CANT', 'CANTIDAD']
+                nit:     ['NIT'],
+                cedula:  ['CEDULA', 'CÉDULA', 'CC', 'C.C', 'C.C.'],
+                empresa: ['EMPRESA', 'RAZON SOCIAL', 'RAZÓN SOCIAL'],
+                nombre:  ['NOMBRE', 'NOMBRES', 'NOMBRE COMPLETO'],
+                cant:    ['CANT', 'CANTIDAD']
             });
-            if (colsEmp.nombre === undefined) {
+            if (colsEmp.empresa === undefined && colsEmp.nombre === undefined) {
                 hojaEmpresasNoExiste = true;
             } else {
-                hayColumnaNit = colsEmp.nit !== undefined;
+                hayColumnaNit = colsEmp.nit !== undefined || colsEmp.cedula !== undefined;
                 dataEmp.slice(1).forEach(row => {
                     if (!row) return;
-                    const nombre = sanitizeForPDF(row[colsEmp.nombre]).trim();
+                    const cel = (c) => (c !== undefined ? sanitizeForPDF(row[c]).trim() : '');
+                    const persona = !cel(colsEmp.nit) && Boolean(cel(colsEmp.cedula));   // CEDULA sin NIT: persona
+                    const nombre = persona ? (cel(colsEmp.nombre) || cel(colsEmp.empresa)) : (cel(colsEmp.empresa) || cel(colsEmp.nombre));
                     if (!nombre) return;
                     filasEmpresas.push({
                         nombre,
-                        nit: hayColumnaNit ? sanitizeForPDF(row[colsEmp.nit]).trim() : '',
+                        persona,
+                        nit: cel(colsEmp.nit) || cel(colsEmp.cedula),
                         cant: colsEmp.cant !== undefined ? (parseInt(row[colsEmp.cant]) || 0) : 0
                     });
                 });
@@ -457,6 +462,7 @@ async function generarReportesPDF() {
             const f = vinculo[i] >= 0 ? filasEmpresas[vinculo[i]] : null;
             return {
                 nit: f ? f.nit : '',
+                persona: f ? Boolean(f.persona) : false,
                 nombre: f ? f.nombre : g.nombre,
                 nombreOriginal: g.nombre,
                 cant: g.cant,

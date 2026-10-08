@@ -178,7 +178,7 @@ function extractOficioCompany(text) {
 // fila + documento del primer trabajador (si no, el "1" de la fila quedaría pegado al nombre).
 // Las páginas siguientes de una planilla larga no repiten este encabezado.
 // ==========================================
-const REPORT_HEADER_RE = /Total\s+Tarjetas\s+de\s+la\s+Empresa\s*:\s*(\d+)\s+(?:Nit\s*:\s*([\d.\-\s]*?)\s*)?Empresa\s*:\s*/i;
+const REPORT_HEADER_RE = /Total\s+Tarjetas\s+de\s+la\s+Empresa\s*:\s*(\d+)\s+(?:(?:Nit|C\.?\s?C\.?)\s*:\s*([\d.\-\s]*?)\s*)?(?:Empresa|Nombre)\s*:\s*/i;
 
 function extractReportCompany(text) {
     if (!text) return null;
@@ -194,7 +194,7 @@ function extractReportCompany(text) {
         /\s+CEDULA\b/i,
         /\s+NOMBRE\s+TRABAJADOR/i,
         /\s+No\s+TARJETA/i,
-        /\s+Nit\s*:/i,
+        /\s+(?:Nit|C\.?\s?C\.?)\s*:/i,
         /\s+Total\s+Tarjetas/i
     ];
     for (const p of cutPatterns) {
@@ -446,22 +446,26 @@ async function leerEmpresasExcel(file, nombreHoja) {
     if (!sheet) return { error: `El Excel no tiene la hoja "${nombreHoja}". Hojas encontradas: ${wb.SheetNames.join(', ')}.` };
     const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
     const cols = detectarColumnas(data[0] || [], {
-        nit:    ['NIT'],
-        nombre: ['EMPRESA', 'RAZON SOCIAL', 'RAZÓN SOCIAL'],
-        cant:   ['CANT', 'CANTIDAD']
+        nit:     ['NIT'],
+        cedula:  ['CEDULA', 'CÉDULA', 'CC', 'C.C', 'C.C.'],
+        empresa: ['EMPRESA', 'RAZON SOCIAL', 'RAZÓN SOCIAL'],
+        nombre:  ['NOMBRE', 'NOMBRES', 'NOMBRE COMPLETO'],
+        cant:    ['CANT', 'CANTIDAD']
     });
-    if (cols.nombre === undefined) return { error: `La hoja "${nombreHoja}" no tiene una columna EMPRESA.` };
+    if (cols.empresa === undefined && cols.nombre === undefined) return { error: `La hoja "${nombreHoja}" no tiene una columna EMPRESA (o NOMBRE, para personas).` };
     const filas = [];
     data.slice(1).forEach(row => {
-        const nombre = String(row[cols.nombre] ?? '').trim();
+        const cel = (c) => (c !== undefined ? String(row[c] ?? '').trim() : '');
+        const persona = !cel(cols.nit) && Boolean(cel(cols.cedula));
+        const nombre = persona ? (cel(cols.nombre) || cel(cols.empresa)) : (cel(cols.empresa) || cel(cols.nombre));
         if (!nombre) return;
         filas.push({
             nombre,
-            nit: cols.nit !== undefined ? String(row[cols.nit] ?? '').replace(/\D/g, '') : '',
+            nit: (cel(cols.nit) || cel(cols.cedula)).replace(/\D/g, ''),
             cant: cols.cant !== undefined ? (parseInt(row[cols.cant]) || 0) : 0
         });
     });
-    return { filas, tieneNit: cols.nit !== undefined, tieneCant: cols.cant !== undefined };
+    return { filas, tieneNit: cols.nit !== undefined || cols.cedula !== undefined, tieneCant: cols.cant !== undefined };
 }
 
 // ==========================================
