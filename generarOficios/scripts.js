@@ -82,7 +82,7 @@ function readExcelWorkbook(file) {
                 resolve(workbook);
             } catch (error) { reject(error); }
         };
-        reader.onerror = (e) => reject(e);
+        reader.onerror = () => reject(Object.assign(new Error('No se pudo leer el archivo. Cierra el Excel si lo tienes abierto, quita el archivo y vuelve a cargarlo (o cópialo a una carpeta de tu equipo, fuera de OneDrive o de una carpeta de red) y reintenta.'), { noLegible: true }));
         reader.readAsArrayBuffer(file);
     });
 }
@@ -91,7 +91,7 @@ function readFileAsArrayBuffer(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => resolve(e.target.result);
-        reader.onerror = (e) => reject(e);
+        reader.onerror = () => reject(Object.assign(new Error('No se pudo leer el archivo. Cierra el Excel si lo tienes abierto, quita el archivo y vuelve a cargarlo (o cópialo a una carpeta de tu equipo, fuera de OneDrive o de una carpeta de red) y reintenta.'), { noLegible: true }));
         reader.readAsArrayBuffer(file);
     });
 }
@@ -319,7 +319,9 @@ async function dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, fir
         const f = opts.font || (opts.bold ? fontBold : font);
         const s = opts.size || fontSize;
         const lh = s * cfg.lineSpacing;
-        const lines = wrapText(text, f, s, maxWidth);
+        let lines = wrapText(text, f, s, maxWidth);
+        // maxLines: si el texto es más largo, se corta donde llegue (para que el oficio no pase de hoja)
+        if (opts.maxLines && lines.length > opts.maxLines) lines = lines.slice(0, opts.maxLines);
 
         for (let i = 0; i < lines.length; i++) {
             newPageIfNeeded(lh);
@@ -345,9 +347,9 @@ async function dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, fir
     // --- Destinatario ---
     const persona = emp.persona;
     drawParagraph(persona ? 'Señor(a):' : 'Señores:');
-    drawParagraph(emp.empresa, { bold: true });
+    drawParagraph(emp.empresa, { bold: true, maxLines: 2 });
     if (emp.nit) drawParagraph(persona ? `C.C: ${emp.nit}` : `NIT: ${emp.nit}`);
-    if (emp.direccion) drawParagraph(emp.direccion);
+    if (emp.direccion) drawParagraph(emp.direccion, { maxLines: 1 });
     if (emp.telefono)  drawParagraph(`Teléfono: ${emp.telefono}`);
     if (emp.ciudad)    drawParagraph(emp.ciudad);
     gap(12);
@@ -378,22 +380,22 @@ async function dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, fir
     } else {
         // --- Cuerpo para empresa ---
         drawParagraph(`Remito a usted listado, ${emp.cant} Tarjeta (s) Corporativa (s), para que por favor sea (n) entregada (s) al (los) colaborador (es).`);
-        gap(5);
+        gap(4);
 
         drawParagraph('La tarjeta corporativa es el medio de identificación ante la Caja para poder disfrutar de los diferentes servicios que prestamos y además como uno de los medios de pago del subsidio familiar.');
-        gap(5);
+        gap(4);
 
         drawParagraph('Es indispensable que sus funcionarios afilien a su grupo familiar ante Comfacauca y si tienen derecho al subsidio monetario, al recibir la Tarjeta, deben tramitar la activación de la misma, la cual se realiza haciendo el cambio de la "clave genérica" asignada a cada Tarjeta "1234" en almacenes Éxito a nivel nacional o en los establecimientos de comercio con los cuales se tiene convenio y que puede consultar por el link www.comfacauca.com/medios-de-pago. La clave genérica no permite realizar ninguna transacción. Se recomienda cambiar la clave de la tarjeta cada año.');
-        gap(5);
+        gap(4);
 
         drawParagraph('La Tarjeta Corporativa COMFACAUCA no tiene costo de manejo, si cambia de empresa y esta se encuentra afiliada a la Caja de Compensación, puede seguir usando la misma Tarjeta Corporativa Comfacauca, se sugiere no acumular el subsidio, teniendo en cuenta que el mismo vence después de 3 años de recibir dicha prestación. (Artículo 6 Ley 21 de 1982). Por ello, le invitamos a inscribir su cuenta bancaria ingresando a nuestra página www.comfacauca.com, en el link: Comfacauca en Línea, opción del Menú Principal > Inscripción Cuenta Bancaria, o contactándose al teléfono 602 8231868 Ext 128 o 129, al celular corporativo 3225857250 o al correo electrónico tarjetas@comfacauca.com para más información.');
-        gap(5);
+        gap(4);
 
         drawParagraph('La consulta personalizada de cuotas pagadas, movimientos y saldo de su tarjeta la puede realizar a través de www.comfacauca.com, ingresando por Comfacauca en línea (ubicado en la parte superior derecha de su pantalla); allí puede crear su usuario consultando el manual de trabajadores para poder hacer uso de este servicio, indispensable tener correo electrónico.');
-        gap(5);
+        gap(4);
 
         drawParagraph('Favor hacer extensiva esta información a sus empleados.');
-        gap(7);
+        gap(5);
     }
 
     gap(8);
@@ -436,7 +438,7 @@ async function dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, fir
     drawParagraph(firmante, { bold: true });
     if (cargo) drawParagraph(cargo);
     if (!persona) {
-        gap(10);
+        gap(6);
         drawParagraph('Nota: El listado de tarjetas de cada empresa se guarda de forma electrónica en Tesorería junto con este oficio y la relación de destinatarios, debidamente radicados.');
         gap(5);
         drawParagraph('Adjunto: Relación empresas pago (1 hoja).');
@@ -618,9 +620,10 @@ async function generarOficios() {
 
     } catch (error) {
         console.error(error);
-        messageEl.textContent = '❌ Ocurrió un error al generar los oficios. Revisa la consola (F12).';
+        const legible = error && error.noLegible;
+        messageEl.textContent = legible ? '❌ ' + error.message : '❌ Ocurrió un error al generar los oficios. Revisa la consola (F12).';
         messageEl.className = 'error';
-        alert('Ocurrió un error al generar los oficios.');
+        alert(legible ? error.message : 'Ocurrió un error al generar los oficios.');
     }
 }
 
