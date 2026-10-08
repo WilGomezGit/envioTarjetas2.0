@@ -358,10 +358,7 @@ async function dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, fir
 
     if (persona) {
         // --- Cuerpo para persona natural (afiliado) ---
-        drawParagraph('Remito a usted su Tarjeta Corporativa, con la cual podrá identificarse ante la Caja y recibir el pago del subsidio.');
-        gap(3);
-
-        drawParagraph('Señor(a) afiliado(a), la tarjeta corporativa es el medio de identificación ante la Caja para poder disfrutar de los diferentes servicios que prestamos y además como uno de los medios de pago del subsidio monetario.');
+        drawParagraph('Remito a usted su Tarjeta Corporativa, la cual constituye el medio de identificación ante la Caja y le permite disfrutar de los diferentes servicios que prestamos, además de ser uno de los medios de pago del subsidio monetario.');
         gap(3);
 
         drawParagraph('Es indispensable que afilie a su grupo familiar ante Comfacauca y, si tiene derecho al subsidio monetario, al recibir la Tarjeta debe tramitar la activación de la misma. Para ello, realice el cambio de la "clave genérica" asignada a la Tarjeta "1234" en las cajas registradoras de los almacenes Éxito a nivel nacional o en las oficinas de Comfacauca. La clave genérica no permite realizar ninguna transacción.');
