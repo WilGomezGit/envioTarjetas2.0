@@ -148,18 +148,9 @@ function detectarColumnas(headersRow, mapaBuscado) {
 // ==========================================
 // EMPRESA O PERSONA (cambia el encabezado del destinatario)
 // ==========================================
-// Empresa -> "Señores / NOMBRE / NIT: ..."   Persona -> "Señor(a): / Nombre / C.C: ..."
-// Se puede forzar con una columna TIPO (NIT, EMPRESA, CC, PERSONA). Si no existe, una fila con
-// una sola tarjeta y sin palabras propias de empresa (S.A.S, LTDA, COOPERATIVA...) es persona.
-const MARCAS_EMPRESA = /\b(S\.?\s?A\.?\s?S|S\.?\s?A|LTDA|E\.?\s?U|S\.?\s?C\.?\s?A|COOPERATIVA|ASOCIACI[OÓ]N|FUNDACI[OÓ]N|CORPORACI[OÓ]N|COMPA[ÑN][IÍ]A|EMPRESA|CL[IÍ]NICA|HOSPITAL|COLEGIO|UNIVERSIDAD|SUPERMERCADO|ALMAC[EÉ]N|DISTRIBUIDORA|COMERCIALIZADORA|INGENIER[IÍ]A|CONSTRUCCIONES|SERVICIOS|TRANSPORTES|GRUPO|CIA)\b/i;
-
-function esPersona(emp) {
-    const t = normalizeHeader(emp.tipo || '');
-    if (['CC', 'C.C', 'CEDULA', 'PERSONA', 'PERSONA NATURAL', 'NATURAL'].includes(t)) return true;
-    if (['NIT', 'EMPRESA', 'JURIDICA', 'PERSONA JURIDICA'].includes(t)) return false;
-    return emp.cant <= 1 && !MARCAS_EMPRESA.test(emp.empresa);
-}
-
+// Por la columna: con NIT (+ EMPRESA) es empresa -> "Señores: / NOMBRE / NIT: ..."
+// con CEDULA (+ NOMBRE) es persona -> "Señor(a): / Nombre / C.C: ..."
+// En una misma hoja pueden venir filas de los dos tipos: cada fila usa el NIT o la CEDULA que tenga.
 // ==========================================
 // DRAG & DROP
 // ==========================================
@@ -352,7 +343,7 @@ async function dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, fir
     gap(8);
 
     // --- Destinatario ---
-    const persona = esPersona(emp);
+    const persona = emp.persona;
     drawParagraph(persona ? 'Señor(a):' : 'Señores:');
     drawParagraph(emp.empresa, { bold: true });
     if (emp.nit) drawParagraph(persona ? `C.C: ${emp.nit}` : `NIT: ${emp.nit}`);
@@ -508,7 +499,8 @@ async function generarOficios() {
 
         const cols = detectarColumnas(headers, {
             nit:       ['NIT'],
-            tipo:      ['TIPO', 'TIPO DOC', 'TIPO DOCUMENTO', 'TIPO DE DOCUMENTO'],
+            cedula:    ['CEDULA', 'CÉDULA', 'CC', 'C.C', 'C.C.'],
+            nombre:    ['NOMBRE', 'NOMBRES', 'NOMBRE COMPLETO'],
             empresa:   ['EMPRESA', 'RAZON SOCIAL', 'RAZÓN SOCIAL'],
             cant:      ['CANT', 'CANTIDAD'],
             direccion: ['DIRECCION', 'DIRECCIÓN', 'DIRECCION LOCAL', 'DIRECCIÓN LOCAL'],
@@ -518,8 +510,8 @@ async function generarOficios() {
 
         console.log('📋 Columnas detectadas:', cols);
 
-        if (cols.empresa === undefined) {
-            alert('No se encontró la columna EMPRESA en la hoja "' + sheetName + '".');
+        if (cols.empresa === undefined && cols.nombre === undefined) {
+            alert('No se encontró la columna EMPRESA (o NOMBRE, para personas) en la hoja "' + sheetName + '".');
             messageEl.textContent = '';
             messageEl.className = '';
             return;
@@ -531,13 +523,16 @@ async function generarOficios() {
             const row = data[i];
             if (!row) continue;
 
-            const empresa = String(row[cols.empresa] ?? '').trim();
+            const cel = (c) => (c !== undefined ? String(row[c] ?? '').trim() : '');
+            const nitFila = cel(cols.nit), cedulaFila = cel(cols.cedula);
+            const persona = !nitFila && Boolean(cedulaFila);   // sin NIT pero con cédula: persona
+            const empresa = (persona ? (cel(cols.nombre) || cel(cols.empresa)) : (cel(cols.empresa) || cel(cols.nombre)));
             if (!empresa) continue;
 
             empresas.push({
-                no:        cols.nit       !== undefined ? String(row[cols.nit] ?? '').trim()       : '',
-                nit:       cols.nit       !== undefined ? String(row[cols.nit] ?? '').trim()       : '',
-                tipo:      cols.tipo      !== undefined ? String(row[cols.tipo] ?? '').trim()      : '',
+                no:        nitFila || cedulaFila,
+                nit:       nitFila || cedulaFila,
+                persona:   persona,
                 empresa:   empresa,
                 cant:      cols.cant      !== undefined ? (parseInt(row[cols.cant]) || 0)          : 0,
                 direccion: cols.direccion !== undefined ? String(row[cols.direccion] ?? '').trim() : '',
