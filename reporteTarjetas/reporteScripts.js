@@ -297,7 +297,7 @@ function readExcelWorkbook(file) {
                 resolve(workbook);
             } catch (error) { reject(error); }
         };
-        reader.onerror = (e) => reject(e);
+        reader.onerror = () => reject(Object.assign(new Error('No se pudo leer el archivo. Cierra el Excel si lo tienes abierto, quita el archivo y vuelve a cargarlo (o cópialo a una carpeta de tu equipo, fuera de OneDrive o de una carpeta de red) y reintenta.'), { noLegible: true }));
         reader.readAsArrayBuffer(file);
     });
 }
@@ -605,8 +605,9 @@ async function generarReportesPDF() {
 
     } catch (error) {
         console.error(error);
-        messageEl.textContent = '❌ Ocurrió un error al generar los reportes. Revisa la consola (F12) para más detalles.';
+        const legible = error && error.noLegible;
+        messageEl.textContent = legible ? '❌ ' + error.message : '❌ Ocurrió un error al generar los reportes. Revisa la consola (F12) para más detalles.';
         messageEl.className = 'error';
-        alert("Ocurrió un error al generar los reportes. Revisa la consola para más detalles.");
+        alert(legible ? error.message : "Ocurrió un error al generar los reportes. Revisa la consola para más detalles.");
     }
 }
