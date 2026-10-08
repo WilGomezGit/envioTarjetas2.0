@@ -104,9 +104,10 @@ async function extractPageTexts(file) {
 // ==========================================
 function extractOficioCompany(text) {
     if (!text) return null;
-    const idx = text.search(/Se[ñn]ores\s+/i);
+    // Empresas: "Señores:" — personas: "Señor(a):"
+    const idx = text.search(/Se[ñn]or(?:es|\(a\))\s*:?\s+/i);
     if (idx < 0) return null;
-    let after = text.substring(idx).replace(/^Se[ñn]ores\s*/i, '').trim();
+    let after = text.substring(idx).replace(/^Se[ñn]or(?:es|\(a\))\s*:?\s*/i, '').trim();
 
     let cutIdx = after.length;
 
@@ -131,6 +132,7 @@ function extractOficioCompany(text) {
         /\s+CONJ\b/i,
         /\s+SIN\s+DIREC/i,
         /\s+Tel[eé]fono/i,
+        /\s+(?:NIT|C\.?\s?C\.?)\s*:/i,   // línea "NIT: ..." o "C.C: ..." tras el nombre
         /\s+U\.?\s*D\.?\s*S\.?/i,
         // Ciudades (por si no hay dirección)
         /\s+POPAY[AÁ]N\b/i,
@@ -342,9 +344,9 @@ function emparejarConExcel(filas, oficios, unidades) {
 
     // ---- Oficios: la fila cuyo nombre es lo que viene tras "Señores" ----
     oficios.forEach((o, i) => {
-        const idx = o.texto.indexOf('SENORES ');
-        if (idx < 0) { motivoOficio.set(i, 'no se encontró "Señores" en la página'); return; }
-        const resto = o.texto.substring(idx + 8);
+        const mS = o.texto.match(/SENOR(?:ES|A) /);   // "Señores:" (empresa) o "Señor(a):" (persona)
+        if (!mS) { motivoOficio.set(i, 'no se encontró "Señores" ni "Señor(a)" en la página'); return; }
+        const resto = o.texto.substring(mS.index + mS[0].length);
         let cands = todas.filter(k => filas[k].nombre && (resto === filas[k].nombre || resto.startsWith(filas[k].nombre + ' ')));
         if (!cands.length) { motivoOficio.set(i, 'su empresa no está en el Excel'); return; }
         const largo = Math.max(...cands.map(k => filas[k].nombre.length));

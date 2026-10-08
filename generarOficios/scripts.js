@@ -146,6 +146,21 @@ function detectarColumnas(headersRow, mapaBuscado) {
 }
 
 // ==========================================
+// EMPRESA O PERSONA (cambia el encabezado del destinatario)
+// ==========================================
+// Empresa -> "Señores / NOMBRE / NIT: ..."   Persona -> "Señor(a): / Nombre / C.C: ..."
+// Se puede forzar con una columna TIPO (NIT, EMPRESA, CC, PERSONA). Si no existe, una fila con
+// una sola tarjeta y sin palabras propias de empresa (S.A.S, LTDA, COOPERATIVA...) es persona.
+const MARCAS_EMPRESA = /\b(S\.?\s?A\.?\s?S|S\.?\s?A|LTDA|E\.?\s?U|S\.?\s?C\.?\s?A|COOPERATIVA|ASOCIACI[OÓ]N|FUNDACI[OÓ]N|CORPORACI[OÓ]N|COMPA[ÑN][IÍ]A|EMPRESA|CL[IÍ]NICA|HOSPITAL|COLEGIO|UNIVERSIDAD|SUPERMERCADO|ALMAC[EÉ]N|DISTRIBUIDORA|COMERCIALIZADORA|INGENIER[IÍ]A|CONSTRUCCIONES|SERVICIOS|TRANSPORTES|GRUPO|CIA)\b/i;
+
+function esPersona(emp) {
+    const t = normalizeHeader(emp.tipo || '');
+    if (['CC', 'C.C', 'CEDULA', 'PERSONA', 'PERSONA NATURAL', 'NATURAL'].includes(t)) return true;
+    if (['NIT', 'EMPRESA', 'JURIDICA', 'PERSONA JURIDICA'].includes(t)) return false;
+    return emp.cant <= 1 && !MARCAS_EMPRESA.test(emp.empresa);
+}
+
+// ==========================================
 // DRAG & DROP
 // ==========================================
 function setupDropZone(dropZoneId, inputId, isSignature) {
@@ -337,8 +352,10 @@ async function dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, fir
     gap(8);
 
     // --- Destinatario ---
-    drawParagraph('Señores');
+    const persona = esPersona(emp);
+    drawParagraph(persona ? 'Señor(a):' : 'Señores:');
     drawParagraph(emp.empresa, { bold: true });
+    if (emp.nit) drawParagraph(persona ? `C.C: ${emp.nit}` : `NIT: ${emp.nit}`);
     if (emp.direccion) drawParagraph(emp.direccion);
     if (emp.telefono)  drawParagraph(`Teléfono: ${emp.telefono}`);
     if (emp.ciudad)    drawParagraph(emp.ciudad);
@@ -465,6 +482,7 @@ async function generarOficios() {
 
         const cols = detectarColumnas(headers, {
             nit:       ['NIT'],
+            tipo:      ['TIPO', 'TIPO DOC', 'TIPO DOCUMENTO', 'TIPO DE DOCUMENTO'],
             empresa:   ['EMPRESA', 'RAZON SOCIAL', 'RAZÓN SOCIAL'],
             cant:      ['CANT', 'CANTIDAD'],
             direccion: ['DIRECCION', 'DIRECCIÓN', 'DIRECCION LOCAL', 'DIRECCIÓN LOCAL'],
@@ -493,6 +511,7 @@ async function generarOficios() {
             empresas.push({
                 no:        cols.nit       !== undefined ? String(row[cols.nit] ?? '').trim()       : '',
                 nit:       cols.nit       !== undefined ? String(row[cols.nit] ?? '').trim()       : '',
+                tipo:      cols.tipo      !== undefined ? String(row[cols.tipo] ?? '').trim()      : '',
                 empresa:   empresa,
                 cant:      cols.cant      !== undefined ? (parseInt(row[cols.cant]) || 0)          : 0,
                 direccion: cols.direccion !== undefined ? String(row[cols.direccion] ?? '').trim() : '',
