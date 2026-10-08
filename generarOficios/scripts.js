@@ -362,27 +362,54 @@ async function dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, fir
     gap(8);
 
     // --- Asunto ---
-    drawParagraph('Asunto: Entrega Tarjetas Corporativas Pago Subsidio Familiar e Identificación ante la Caja.', { bold: true });
+    drawParagraph(`Asunto: Entrega ${persona && emp.cant <= 1 ? 'Tarjeta Corporativa' : 'Tarjetas Corporativas'} Pago Subsidio Familiar e Identificación ante la Caja.`, { bold: true });
     gap(8);
 
-    // --- Cuerpo ---
-    drawParagraph(`Remito a usted listado, ${emp.cant} Tarjeta (s) Corporativa (s), para que por favor sea (n) entregada (s) al (los) colaborador (es).`);
-    gap(8);
+    if (persona) {
+        // --- Cuerpo para persona natural (afiliado) ---
+        const varias = emp.cant > 1;
+        drawParagraph(varias
+            ? `Remito a usted sus ${emp.cant} Tarjetas Corporativas, con las cuales podrá identificarse ante la Caja y recibir el pago del subsidio.`
+            : 'Remito a usted su Tarjeta Corporativa, con la cual podrá identificarse ante la Caja y recibir el pago del subsidio.');
+        gap(8);
 
-    drawParagraph('La tarjeta corporativa es el medio de identificación ante la Caja para poder disfrutar de los diferentes servicios que prestamos y además como uno de los medios de pago del subsidio familiar.');
-    gap(8);
+        drawParagraph('Señor(a) afiliado(a), la tarjeta corporativa es el medio de identificación ante la Caja para poder disfrutar de los diferentes servicios que prestamos y además como uno de los medios de pago del subsidio monetario.');
+        gap(8);
 
-    drawParagraph('Es indispensable que sus funcionarios afilien a su grupo familiar ante Comfacauca y si tienen derecho al subsidio monetario, al recibir la Tarjeta, deben tramitar la activación de la misma, la cual se realiza haciendo el cambio de la "clave genérica" asignada a cada Tarjeta "1234" en almacenes Éxito a nivel nacional o en los establecimientos de comercio con los cuales se tiene convenio y que puede consultar por el link www.comfacauca.com/medios-de-pago. La clave genérica no permite la realizarla ninguna transacción.');
-    gap(8);
+        drawParagraph('Es indispensable que afilie a su grupo familiar ante Comfacauca y, si tiene derecho al subsidio monetario, al recibir la Tarjeta debe tramitar la activación de la misma. Para ello, ingrese a nuestra página www.comfacauca.com, por Comfacauca en línea, y realice el cambio de la "clave genérica" asignada a la Tarjeta "1234". La clave genérica no permite realizar ninguna transacción.');
+        gap(8);
 
-    drawParagraph('La Tarjeta Corporativa COMFACAUCA no tiene costo de manejo, si cambia de empresa y esta se encuentra afiliada a la Caja de Compensación, puede seguir usando la misma Tarjeta Corporativa Comfacauca, se sugiere no acumular el subsidio, teniendo en cuenta que el mismo vence después de 3 años de recibir dicha prestación. (Artículo 6 Ley 21 de 1982). Por ello, le invitamos a inscribir su cuenta bancaria ingresando a nuestra página www.comfacauca.com, en el link: Comfacauca en Línea, opción del Menú Principal > Inscripción Cuenta Bancaria, o contactándose al (2) 8231668 ext. 128 y 129 para más información. Se recomienda cambiar la clave de la tarjeta cada año.');
-    gap(8);
+        drawParagraph('La Tarjeta Corporativa COMFACAUCA no tiene costo de manejo. Si cambia de empresa y esta se encuentra afiliada a la Caja de Compensación, puede seguir usando la misma Tarjeta; se sugiere no acumular el subsidio, teniendo en cuenta que el mismo vence después de 3 años de recibir dicha prestación (Art. 6, Ley 21 de 1982). Por ello, le invitamos a inscribir su cuenta bancaria en Comfacauca en Línea, opción del Menú Principal > Inscripción Cuenta Bancaria, o a contactarse al (2) 8231868 ext. 128 y 129 para recibir más información.');
+        gap(8);
 
-    drawParagraph('La consulta personalizada de cuotas pagadas, movimientos y saldo de su tarjeta la puede realizar a través de www.comfacauca.com, ingresando por Comfacauca en línea (ubicado en la parte superior derecha de su pantalla) allí puede crear su usuario consultando el manual de trabajadores para poder hacer uso de este servicio, indispensable tener correo electrónico.');
-    gap(8);
+        drawParagraph('Una vez haga el cambio de la clave genérica, le recordamos que esta es personal e intransferible, que la tarjeta la puede usar en la red comercial establecida y que, para redimir el subsidio, debe presentar su documento de identidad y la tarjeta. Si realiza 3 intentos errados, la tarjeta se bloquea. Se recomienda cambiar la clave cada año.');
+        gap(8);
 
-    drawParagraph('Favor hacer extensiva esta información a sus empleados.');
-    gap(10);
+        drawParagraph('La Tarjeta es de Cuenta Corriente y únicamente opera con datáfonos Redeban Multicolor y en los establecimientos en convenio.');
+        gap(8);
+
+        drawParagraph('La consulta personalizada de cuotas pagadas, movimientos y saldo de su tarjeta la puede realizar a través de www.comfacauca.com, ingresando por Comfacauca en línea (ubicado en la parte superior derecha de su pantalla); allí puede crear su usuario consultando el manual de trabajadores para poder hacer uso de este servicio, indispensable tener correo electrónico.');
+        gap(10);
+    } else {
+        // --- Cuerpo para empresa ---
+        drawParagraph(`Remito a usted listado, ${emp.cant} Tarjeta (s) Corporativa (s), para que por favor sea (n) entregada (s) al (los) colaborador (es).`);
+        gap(8);
+
+        drawParagraph('La tarjeta corporativa es el medio de identificación ante la Caja para poder disfrutar de los diferentes servicios que prestamos y además como uno de los medios de pago del subsidio familiar.');
+        gap(8);
+
+        drawParagraph('Es indispensable que sus funcionarios afilien a su grupo familiar ante Comfacauca y si tienen derecho al subsidio monetario, al recibir la Tarjeta, deben tramitar la activación de la misma, la cual se realiza haciendo el cambio de la "clave genérica" asignada a cada Tarjeta "1234" en almacenes Éxito a nivel nacional o en los establecimientos de comercio con los cuales se tiene convenio y que puede consultar por el link www.comfacauca.com/medios-de-pago. La clave genérica no permite realizar ninguna transacción.');
+        gap(8);
+
+        drawParagraph('La Tarjeta Corporativa COMFACAUCA no tiene costo de manejo, si cambia de empresa y esta se encuentra afiliada a la Caja de Compensación, puede seguir usando la misma Tarjeta Corporativa Comfacauca, se sugiere no acumular el subsidio, teniendo en cuenta que el mismo vence después de 3 años de recibir dicha prestación. (Artículo 6 Ley 21 de 1982). Por ello, le invitamos a inscribir su cuenta bancaria ingresando a nuestra página www.comfacauca.com, en el link: Comfacauca en Línea, opción del Menú Principal > Inscripción Cuenta Bancaria, o contactándose al (2) 8231868 ext. 128 y 129 para más información. Se recomienda cambiar la clave de la tarjeta cada año.');
+        gap(8);
+
+        drawParagraph('La consulta personalizada de cuotas pagadas, movimientos y saldo de su tarjeta la puede realizar a través de www.comfacauca.com, ingresando por Comfacauca en línea (ubicado en la parte superior derecha de su pantalla) allí puede crear su usuario consultando el manual de trabajadores para poder hacer uso de este servicio, indispensable tener correo electrónico.');
+        gap(8);
+
+        drawParagraph('Favor hacer extensiva esta información a sus empleados.');
+        gap(10);
+    }
 
     drawParagraph('Cordialmente,');
     gap(6);
@@ -424,10 +451,10 @@ async function dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, fir
     if (cargo) drawParagraph(cargo);
     gap(15);
 
-    drawParagraph('Nota: El listado de tarjetas de cada empresa se guarda de forma electrónica en Tesorería junto con este oficio y la relación de destinatarios, debidamente radicados.');
+    if (!persona) drawParagraph('Nota: El listado de tarjetas de cada empresa se guarda de forma electrónica en Tesorería junto con este oficio y la relación de destinatarios, debidamente radicados.');
     gap(8);
 
-    drawParagraph('Adjunto: Relación empresas pago (1 hoja).');
+    if (!persona) drawParagraph('Adjunto: Relación empresas pago (1 hoja).');
     gap(10);
 
     if (elaboradoPor) {

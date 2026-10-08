@@ -221,8 +221,10 @@ function extractReportNit(text) {
 
 // Cantidad que declara el oficio: "Remito a usted listado, 4 Tarjeta (s) Corporativa (s)..."
 function extractOficioCantidad(text) {
-    const m = text && text.match(/listado,?\s*(\d+)\s*Tarjeta/i);
-    return m ? parseInt(m[1], 10) : null;
+    // Empresa: "listado, 4 Tarjeta (s)"; persona: "su Tarjeta Corporativa" (1) o "sus 2 Tarjetas Corporativas"
+    const m = text && (text.match(/listado,?\s*(\d+)\s*Tarjeta/i) || text.match(/sus\s+(\d+)\s+Tarjetas/i));
+    if (m) return parseInt(m[1], 10);
+    return text && /Remito a usted su Tarjeta/i.test(text) ? 1 : null;
 }
 
 // Una planilla puede ocupar varias páginas: la primera trae el encabezado con la empresa y las
