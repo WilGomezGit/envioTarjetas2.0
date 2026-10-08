@@ -340,7 +340,7 @@ async function dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, fir
 
     // --- Encabezado (Popayán es la ciudad de emisión del oficio, no del destinatario) ---
     drawParagraph(`Popayán, ${fecha}`);
-    gap(5);
+    gap(14);
 
     // --- Destinatario ---
     const persona = emp.persona;
@@ -350,7 +350,7 @@ async function dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, fir
     if (emp.direccion) drawParagraph(emp.direccion);
     if (emp.telefono)  drawParagraph(`Teléfono: ${emp.telefono}`);
     if (emp.ciudad)    drawParagraph(emp.ciudad);
-    gap(5);
+    gap(12);
 
     // --- Asunto ---
     drawParagraph(`Asunto: Entrega ${persona ? 'Tarjeta Corporativa' : 'Tarjetas Corporativas'} Pago Subsidio Familiar e Identificación ante la Caja.`, { bold: true });
@@ -361,19 +361,19 @@ async function dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, fir
         drawParagraph('Remito a usted su Tarjeta Corporativa, la cual constituye el medio de identificación ante la Caja y le permite disfrutar de los diferentes servicios que prestamos, además de ser uno de los medios de pago del subsidio monetario.');
         gap(3);
 
-        drawParagraph('Es indispensable que afilie a su grupo familiar ante Comfacauca y, si tiene derecho al subsidio monetario, al recibir la Tarjeta debe tramitar la activación de la misma. Para ello, realice el cambio de la "clave genérica" asignada a la Tarjeta "1234" en las cajas registradoras de los almacenes Éxito a nivel nacional o en las oficinas de Comfacauca. La clave genérica no permite realizar ninguna transacción.');
+        drawParagraph('Es indispensable que afilie a su grupo familiar ante Comfacauca y que, si tiene derecho al subsidio monetario, active la tarjeta al recibirla, cambiando la "clave genérica" asignada ("1234") en las cajas registradoras de los almacenes Éxito a nivel nacional o en las oficinas de Comfacauca. Mientras no se cambie, la clave genérica no permite realizar ninguna transacción.');
         gap(3);
 
-        drawParagraph('La Tarjeta Corporativa COMFACAUCA no tiene costo de manejo. Si cambia de empresa y esta se encuentra afiliada a la Caja de Compensación, puede seguir usando la misma Tarjeta; se sugiere no acumular el subsidio, teniendo en cuenta que el mismo vence después de 3 años de recibir dicha prestación (Art. 6, Ley 21 de 1982). Por ello, le invitamos a inscribir su cuenta bancaria en Comfacauca en Línea, opción del Menú Principal > Inscripción Cuenta Bancaria, o a contactarse al teléfono 602 8231868 Ext 128 o 129, al celular corporativo 3225857250 o al correo electrónico tarjetas@comfacauca.com para recibir más información.');
-        gap(3);
-
-        drawParagraph('Una vez haga el cambio de la clave genérica, le recordamos que esta es personal e intransferible, que la tarjeta la puede usar en la red comercial establecida y que, para redimir el subsidio, debe presentar su documento de identidad y la tarjeta. Si olvida la clave o realiza 3 intentos errados, la tarjeta se bloquea; en ese caso debe enviar un correo a tarjetas@comfacauca.com solicitando activarla nuevamente, con sus datos personales, y recibirá un correo de respuesta con las indicaciones que debe seguir. Se recomienda cambiar la clave cada año.');
+        drawParagraph('Una vez cambiada, recuerde que la clave es personal e intransferible y que, para redimir el subsidio en la red comercial establecida, debe presentar su documento de identidad y la tarjeta. Si olvida la clave o realiza 3 intentos errados, la tarjeta se bloquea; en ese caso, envíe un correo a tarjetas@comfacauca.com solicitando su activación, con sus datos personales, y recibirá una respuesta con las indicaciones a seguir. Se recomienda cambiar la clave cada año.');
         gap(3);
 
         drawParagraph('La Tarjeta es de Cuenta Corriente y únicamente opera con datáfonos Redeban Multicolor y en los establecimientos en convenio.');
         gap(3);
 
-        drawParagraph('La consulta personalizada de cuotas pagadas, movimientos y saldo de su tarjeta la puede realizar a través de www.comfacauca.com, ingresando por Comfacauca en línea (ubicado en la parte superior derecha de su pantalla); allí puede crear su usuario consultando el manual de trabajadores para poder hacer uso de este servicio, indispensable tener correo electrónico.');
+        drawParagraph('La Tarjeta Corporativa COMFACAUCA no tiene costo de manejo. Si cambia de empresa y esta se encuentra afiliada a la Caja de Compensación, puede seguir usando la misma tarjeta. Se sugiere no acumular el subsidio, teniendo en cuenta que vence después de 3 años de recibir dicha prestación (Art. 6, Ley 21 de 1982); por ello, le invitamos a inscribir su cuenta bancaria en Comfacauca en Línea, opción del Menú Principal > Inscripción Cuenta Bancaria, o a comunicarse al teléfono 602 8231868 Ext 128 o 129, al celular corporativo 3225857250 o al correo electrónico tarjetas@comfacauca.com para más información.');
+        gap(3);
+
+        drawParagraph('Puede consultar las cuotas pagadas, los movimientos y el saldo de su tarjeta en www.comfacauca.com, ingresando por Comfacauca en línea (parte superior derecha de la pantalla). Allí podrá crear su usuario consultando el manual de trabajadores; para ello es indispensable contar con correo electrónico.');
         gap(5);
     } else {
         // --- Cuerpo para empresa ---
@@ -383,13 +383,13 @@ async function dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, fir
         drawParagraph('La tarjeta corporativa es el medio de identificación ante la Caja para poder disfrutar de los diferentes servicios que prestamos y además como uno de los medios de pago del subsidio familiar.');
         gap(5);
 
-        drawParagraph('Es indispensable que sus funcionarios afilien a su grupo familiar ante Comfacauca y si tienen derecho al subsidio monetario, al recibir la Tarjeta, deben tramitar la activación de la misma, la cual se realiza haciendo el cambio de la "clave genérica" asignada a cada Tarjeta "1234" en almacenes Éxito a nivel nacional o en los establecimientos de comercio con los cuales se tiene convenio y que puede consultar por el link www.comfacauca.com/medios-de-pago. La clave genérica no permite realizar ninguna transacción.');
+        drawParagraph('Es indispensable que sus funcionarios afilien a su grupo familiar ante Comfacauca y si tienen derecho al subsidio monetario, al recibir la Tarjeta, deben tramitar la activación de la misma, la cual se realiza haciendo el cambio de la "clave genérica" asignada a cada Tarjeta "1234" en almacenes Éxito a nivel nacional o en los establecimientos de comercio con los cuales se tiene convenio y que puede consultar por el link www.comfacauca.com/medios-de-pago. La clave genérica no permite realizar ninguna transacción. Se recomienda cambiar la clave de la tarjeta cada año.');
         gap(5);
 
-        drawParagraph('La Tarjeta Corporativa COMFACAUCA no tiene costo de manejo, si cambia de empresa y esta se encuentra afiliada a la Caja de Compensación, puede seguir usando la misma Tarjeta Corporativa Comfacauca, se sugiere no acumular el subsidio, teniendo en cuenta que el mismo vence después de 3 años de recibir dicha prestación. (Artículo 6 Ley 21 de 1982). Por ello, le invitamos a inscribir su cuenta bancaria ingresando a nuestra página www.comfacauca.com, en el link: Comfacauca en Línea, opción del Menú Principal > Inscripción Cuenta Bancaria, o contactándose al teléfono 602 8231868 Ext 128 o 129, al celular corporativo 3225857250 o al correo electrónico tarjetas@comfacauca.com para más información. Se recomienda cambiar la clave de la tarjeta cada año.');
+        drawParagraph('La Tarjeta Corporativa COMFACAUCA no tiene costo de manejo, si cambia de empresa y esta se encuentra afiliada a la Caja de Compensación, puede seguir usando la misma Tarjeta Corporativa Comfacauca, se sugiere no acumular el subsidio, teniendo en cuenta que el mismo vence después de 3 años de recibir dicha prestación. (Artículo 6 Ley 21 de 1982). Por ello, le invitamos a inscribir su cuenta bancaria ingresando a nuestra página www.comfacauca.com, en el link: Comfacauca en Línea, opción del Menú Principal > Inscripción Cuenta Bancaria, o contactándose al teléfono 602 8231868 Ext 128 o 129, al celular corporativo 3225857250 o al correo electrónico tarjetas@comfacauca.com para más información.');
         gap(5);
 
-        drawParagraph('La consulta personalizada de cuotas pagadas, movimientos y saldo de su tarjeta la puede realizar a través de www.comfacauca.com, ingresando por Comfacauca en línea (ubicado en la parte superior derecha de su pantalla) allí puede crear su usuario consultando el manual de trabajadores para poder hacer uso de este servicio, indispensable tener correo electrónico.');
+        drawParagraph('La consulta personalizada de cuotas pagadas, movimientos y saldo de su tarjeta la puede realizar a través de www.comfacauca.com, ingresando por Comfacauca en línea (ubicado en la parte superior derecha de su pantalla); allí puede crear su usuario consultando el manual de trabajadores para poder hacer uso de este servicio, indispensable tener correo electrónico.');
         gap(5);
 
         drawParagraph('Favor hacer extensiva esta información a sus empleados.');
