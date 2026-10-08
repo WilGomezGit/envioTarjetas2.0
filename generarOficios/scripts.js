@@ -348,7 +348,7 @@ async function dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, fir
     const persona = emp.persona;
     drawParagraph(persona ? 'Señor(a):' : 'Señores:');
     drawParagraph(emp.empresa, { bold: true, maxLines: 2 });
-    if (emp.nit) drawParagraph(persona ? `C.C: ${emp.nit}` : `NIT: ${emp.nit}`);
+    if (persona && emp.nit) drawParagraph(`C.C: ${emp.nit}`);   // a las empresas no se les imprime el NIT
     if (emp.direccion) drawParagraph(emp.direccion, { maxLines: 1 });
     if (emp.telefono)  drawParagraph(`Teléfono: ${emp.telefono}`);
     if (emp.ciudad)    drawParagraph(emp.ciudad);
@@ -385,13 +385,13 @@ async function dibujarOficio(pdfDoc, font, fontBold, fontItalic, emp, fecha, fir
         drawParagraph('La tarjeta corporativa es el medio de identificación ante la Caja para poder disfrutar de los diferentes servicios que prestamos y además como uno de los medios de pago del subsidio familiar.');
         gap(4);
 
-        drawParagraph('Es indispensable que sus funcionarios afilien a su grupo familiar ante Comfacauca y si tienen derecho al subsidio monetario, al recibir la Tarjeta, deben tramitar la activación de la misma, la cual se realiza haciendo el cambio de la "clave genérica" asignada a cada Tarjeta "1234" en almacenes Éxito a nivel nacional o en los establecimientos de comercio con los cuales se tiene convenio y que puede consultar por el link www.comfacauca.com/medios-de-pago. La clave genérica no permite realizar ninguna transacción. Se recomienda cambiar la clave de la tarjeta cada año.');
+        drawParagraph('Es indispensable que sus funcionarios afilien a su grupo familiar ante Comfacauca y que, si tienen derecho al subsidio monetario, activen la tarjeta al recibirla, cambiando la "clave genérica" asignada a cada Tarjeta ("1234") en almacenes Éxito a nivel nacional o en los establecimientos de comercio con los cuales se tiene convenio, que pueden consultar en www.comfacauca.com/medios-de-pago. Mientras no se cambie, la clave genérica no permite realizar ninguna transacción. Se recomienda cambiar la clave de la tarjeta cada año.');
         gap(4);
 
-        drawParagraph('La Tarjeta Corporativa COMFACAUCA no tiene costo de manejo, si cambia de empresa y esta se encuentra afiliada a la Caja de Compensación, puede seguir usando la misma Tarjeta Corporativa Comfacauca, se sugiere no acumular el subsidio, teniendo en cuenta que el mismo vence después de 3 años de recibir dicha prestación. (Artículo 6 Ley 21 de 1982). Por ello, le invitamos a inscribir su cuenta bancaria ingresando a nuestra página www.comfacauca.com, en el link: Comfacauca en Línea, opción del Menú Principal > Inscripción Cuenta Bancaria, o contactándose al teléfono 602 8231868 Ext 128 o 129, al celular corporativo 3225857250 o al correo electrónico tarjetas@comfacauca.com para más información.');
+        drawParagraph('La Tarjeta Corporativa COMFACAUCA no tiene costo de manejo. Si el trabajador cambia de empresa y esta se encuentra afiliada a la Caja de Compensación, puede seguir usando la misma tarjeta. Se sugiere no acumular el subsidio, teniendo en cuenta que vence después de 3 años de recibir dicha prestación (Art. 6, Ley 21 de 1982); por ello, le invitamos a inscribir su cuenta bancaria en Comfacauca en Línea, opción del Menú Principal > Inscripción Cuenta Bancaria, o a comunicarse al teléfono 602 8231868 Ext 128 o 129, al celular corporativo 3225857250 o al correo electrónico tarjetas@comfacauca.com para más información.');
         gap(4);
 
-        drawParagraph('La consulta personalizada de cuotas pagadas, movimientos y saldo de su tarjeta la puede realizar a través de www.comfacauca.com, ingresando por Comfacauca en línea (ubicado en la parte superior derecha de su pantalla); allí puede crear su usuario consultando el manual de trabajadores para poder hacer uso de este servicio, indispensable tener correo electrónico.');
+        drawParagraph('Los trabajadores pueden consultar las cuotas pagadas, los movimientos y el saldo de su tarjeta en www.comfacauca.com, ingresando por Comfacauca en línea (parte superior derecha de la pantalla); allí podrán crear su usuario consultando el manual de trabajadores, para lo cual es indispensable contar con correo electrónico.');
         gap(4);
 
         drawParagraph('Favor hacer extensiva esta información a sus empleados.');
